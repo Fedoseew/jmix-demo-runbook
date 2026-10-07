@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jmix Demo Runbook</title>
+<style>
+  :root {
+    --bg: #121417; --panel: #1b1f24; --panel-2: #22272e; --text: #e8e8e8; --muted: #a0a8b3;
+    --accent: #5ac8fa; --ok: #4cd964; --warn: #ffcc00; --bad: #ff6961; --border: #2d333b;
+    --slide-size: 32px; --notes-size: 19px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  body { display: grid; grid-template-rows: auto 1fr; grid-template-columns: 340px 1fr; height: 100vh; }
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 24px; padding: 0 16px; min-height: 56px;
+    background: var(--panel); border-bottom: 1px solid var(--border); }
+  /* в шапке сжимается только подсказка по клавишам (они же в README), остальное не переносится */
+  #demoTabs { display: flex; gap: 8px; flex-shrink: 0; }
+  #demoTabs button { background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 14px; font-size: 16px; cursor: pointer; white-space: nowrap; }
+  #demoTabs button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  #timer { font-variant-numeric: tabular-nums; font-size: 28px; font-weight: 600; min-width: 120px; flex-shrink: 0; }
+  #timer.running { color: var(--ok); }
+  #timer.over { color: var(--bad); } /* после .running: перерасход идущего таймера — красный */
+  #timer.hidden { visibility: hidden; }
+  #totals { color: var(--muted); font-size: 15px; margin-left: auto; flex-shrink: 0; white-space: nowrap; }
+  #help { color: var(--muted); font-size: 13px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  kbd { background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+  nav { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; }
+  #blockList { list-style: none; margin: 0; padding: 8px; }
+  #blockList .block { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 10px 12px;
+    border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-size: 16px;
+    text-align: left; cursor: pointer; }
+  #blockList .block:hover { background: var(--panel-2); }
+  #blockList .block[aria-current="step"] { background: var(--panel-2); outline: 2px solid var(--accent); }
+  /* фокус — белая рамка, чтобы не путать с бирюзовой рамкой текущего блока и активной вкладкой */
+  button:focus-visible, a:focus-visible, #blockList .block:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+  #blockList .min { color: var(--muted); font-variant-numeric: tabular-nums; }
+  #blockList .tags { grid-column: 1 / -1; display: flex; gap: 6px; }
+  .tag { font-size: 14px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+  .tag.opt { border-color: var(--warn); color: var(--warn); }
+  .tag.exit { border-color: var(--bad); color: var(--bad); }
+  .tag.done { border-color: var(--ok); color: var(--ok); }
+  main { overflow-y: auto; padding: 32px 48px; display: flex; flex-direction: column; gap: 24px; }
+  #blockMeta { color: var(--muted); font-size: 16px; }
+  #slideTitle { font-size: calc(var(--slide-size) * 1.4); margin: 0; line-height: 1.15; }
+  #slideBullets { font-size: var(--slide-size); line-height: 1.35; padding-left: 1.1em; margin: 0; }
+  #slideBullets li { margin: 0.35em 0; }
+  #exit { color: var(--bad); font-size: 18px; }
+  #presenter { border-top: 1px solid var(--border); padding-top: 20px; font-size: var(--notes-size); line-height: 1.45; }
+  #presenter[hidden] { display: none; }
+  #notes p { margin: 0 0 0.8em; }
+  #actions { display: flex; flex-direction: column; gap: 10px; }
+  .action { display: grid; grid-template-columns: 100px 1fr auto; gap: 12px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .action .kind { color: var(--muted); font-size: 15px; text-transform: uppercase; letter-spacing: .05em; }
+  .action code, .action a { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--notes-size);
+    word-break: break-all; color: var(--text); }
+  .action a { color: var(--accent); }
+  .action .say { font-style: italic; }
+  .action button { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; font-size: 16px; }
+  .action button.copied { border-color: var(--ok); color: var(--ok); }
+  #status { position: fixed; right: 16px; bottom: 16px; max-width: min(480px, calc(100vw - 32px)); padding: 10px 14px;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; font-size: 16px; }
+  #status:empty { padding: 0; border: 0; }
+  /* 1280×720: шесть двухстрочных буллетов должны помещаться без прокрутки */
+  @media (max-height: 760px) { main { padding: 20px 40px; gap: 14px; } #slideTitle { font-size: calc(var(--slide-size) * 1.2); }
+    #slideBullets { line-height: 1.25; } #slideBullets li { margin: 0.2em 0; } }
+  @media (max-width: 900px) { body { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
+    header { flex-wrap: wrap; gap: 8px 16px; padding: 8px 16px; } #help { display: none; }
+    nav { border-right: 0; border-bottom: 1px solid var(--border); max-height: 30vh; } main { padding: 16px; } }
+</style>
+</head>
+<body>
+<header>
+  <div id="demoTabs" role="group" aria-label="Демо"></div>
+  <div id="timer" aria-live="off">00:00</div>
+  <div id="totals"></div>
+  <div id="help">
+    <kbd>←</kbd><kbd>→</kbd> блок · <kbd>N</kbd> заметки · <kbd>T</kbd> таймер · <kbd>R</kbd> сброс · <kbd>F</kbd> экран · <kbd>1</kbd><kbd>2</kbd> демо
+  </div>
+</header>
+<nav><ul id="blockList"></ul></nav>
+<main>
+  <div id="blockMeta"></div>
+  <h1 id="slideTitle"></h1>
+  <ul id="slideBullets"></ul>
+  <div id="exit" hidden></div>
+  <section id="presenter" hidden>
+    <div id="notes"></div>
+    <div id="actions"></div>
+  </section>
+</main>
+<div id="status" role="status"></div>
+<script src="./content.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
