@@ -18,7 +18,7 @@
 - `jmix-crm` `main` — Jmix 3.0.3, add-ons: aitools, reports, audit, appsettings; Spring AI OpenAI. Workspace «CRM AI» уже есть. Toolkit установлен (`.skills`, `.claude`, `.junie`, `.agents`).
 - `jmix-crm` ветка `50-dynmodel-ai-agent-tabbed` — Jmix + Jmix Premium `3.1.999-SNAPSHOT` из local Maven. Add-ons: aitools, aichat, dynmodel, dynmodel-ai. Стенды `aura-light`…`aura-light-tabbed` на портах 8091–8096, `OPENROUTER_API_KEY` (опц. `ANTHROPIC_API_KEY`), логин `admin/admin`, `demo/dynmodel-ai-agent/README.md` с готовыми сценариями.
 - Reports band type **AI-generated JPQL** (`DataSetType.LLM`) — только в Jmix master (3.1), в 3.0.3 нет. Промпт → JPQL генерируется при авторинге через Text-to-Data Query из aitools, одна попытка исправления, запрос сохраняется с отчётом; запуск отчёта выполняет сохранённый JPQL через `DataManager` с правами текущего пользователя, модель на запуске не нужна.
-- aitools data-load: генерация + валидация JPQL, проверка READ на весь граф запроса, row-level policies, `@ExcludeFromAi`, `@Secret`, непersistent-атрибуты скрыты.
+- aitools data-load: генерация + валидация JPQL, проверка READ на весь граф запроса, row-level policies, `@ExcludeFromAi`, `@Secret`, non-persistent атрибуты скрыты.
 - `jmix-agent-toolkit`: 22 skills (`content/skills/*`), guidelines-block, install wizard (CLI `install.sh` и Studio 3.0+ «AI Agents Toolkit»), регистрация MCP, Playwright.
 - `jmix-cli`: wizard, те же шаблоны что Studio, bundled JRE. Локально `jmix --version` зависает — проверить до демо.
 - CRM работает на HSQLDB file (`.jmix/hsqldb/b2b-crm`) — для reverse engineering заменяем на PostgreSQL в Docker с дампом.
