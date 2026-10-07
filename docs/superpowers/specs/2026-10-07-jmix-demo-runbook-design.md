@@ -16,7 +16,7 @@
 ## 2. Опорные факты (проверено локально 2026-10-07)
 
 - `jmix-crm` `main` — Jmix 3.0.3, add-ons: aitools, reports, audit, appsettings; Spring AI OpenAI. Workspace «CRM AI» уже есть. Toolkit установлен (`.skills`, `.claude`, `.junie`, `.agents`).
-- `jmix-crm` ветка `50-dynmodel-ai-agent-tabbed` — Jmix + Jmix Premium `3.1.999-SNAPSHOT` из local Maven. Add-ons: aitools, aichat, dynmodel, dynmodel-ai. Стенды `aura-light`…`aura-light-tabbed` на портах 8091–8096, `OPENROUTER_API_KEY` (опц. `ANTHROPIC_API_KEY`), логин `admin/admin`, `demo/dynmodel-ai-agent/README.md` с готовыми сценариями.
+- `jmix-crm` ветка `50-dynmodel-ai-agent` (tabbed-вариант не используем) — Jmix + Jmix Premium `3.1.999-SNAPSHOT` из local Maven. Add-ons: aitools, aichat, dynmodel, dynmodel-ai. Стенды `aura-light` :8091 … `aura-rtl` :8095 (используем `aura-light`; `aura-dark` :8092 — на Claude при `ANTHROPIC_API_KEY`), `OPENROUTER_API_KEY` (опц. `ANTHROPIC_API_KEY`), логин `admin/admin`, `demo/dynmodel-ai-agent/README.md` с готовыми сценариями.
 - Reports band type **AI-generated JPQL** (`DataSetType.LLM`) — только в Jmix master (3.1), в 3.0.3 нет. Промпт → JPQL генерируется при авторинге через Text-to-Data Query из aitools, одна попытка исправления, запрос сохраняется с отчётом; запуск отчёта выполняет сохранённый JPQL через `DataManager` с правами текущего пользователя, модель на запуске не нужна.
 - aitools data-load: генерация + валидация JPQL, проверка READ на весь граф запроса, row-level policies, `@ExcludeFromAi`, `@Secret`, non-persistent атрибуты скрыты.
 - `jmix-agent-toolkit`: 22 skills (`content/skills/*`), guidelines-block, install wizard (CLI `install.sh` и Studio 3.0+ «AI Agents Toolkit»), регистрация MCP, Playwright.
@@ -32,7 +32,7 @@
 | A1 | Окружение агента | 10 | | jmix-agent-toolkit: install wizard (CLI и Studio), что появилось в проекте: skills, guidelines-block, MCP, Playwright. Guardrail-skills: `jmix-ide-static-analysis`, `jmix-verify-bootrun`, `jmix-verify-api-symbol`. Рекомендации по окружению: отдельная ветка, bootRun-проверка, не давать агенту prod-ключи | открыть `jmix-crm` `main`, показать `.skills`, `AGENTS.md`, `jmix` skill |
 | A2 | Агент делает фичу | 15 | | Промпт «сущность + list/detail + роль + тест» на jmix-crm. Live-старт 2–3 мин, затем `git checkout demo/agent-task` с готовым результатом. Где фреймворк поймал ошибку: Studio inspection, Liquibase diff, роль без policy → данных нет, Bean Validation, Vaadin не даёт обойти серверную логику | терминал + Studio |
 | A3 | Jmix CLI + Studio AI Assistant | 10 | да | `jmix` из скрипта/агента без wizard; AI Assistant в Studio. **Точка выхода №1** | терминал, Studio |
-| A4 | AI внутри: CRM AI | 12 | | aitools data-load: вопрос → JPQL → валидация → ответ. Row-level security: admin vs manager — разные ответы на один вопрос. `@ExcludeFromAi`/`@Secret`. Ссылки на записи, отчёты из чата | стенд `aura-light-tabbed` :8096 |
+| A4 | AI внутри: CRM AI | 12 | | aitools data-load: вопрос → JPQL → валидация → ответ. Row-level security: admin vs manager — разные ответы на один вопрос. `@ExcludeFromAi`/`@Secret`. Ссылки на записи, отчёты из чата | стенд `aura-light` :8091 |
 | A5 | AI JPQL в отчётах | 8 | | Report designer → band → тип «AI-generated JPQL» → промпт → сгенерированный JPQL виден и редактируем → параметры отчёта = named params → запуск под manager: права применяются, модель не нужна | тот же стенд, Reports |
 | A6 | Dynamic Model AI | 15 | | Описание → план → review → Apply → экраны в меню сразу. Границы: отказ читать бизнес-данные, отказ менять тип поля. Сценарии из README ветки. **Точка выхода №2** (сократить до 8) | тот же стенд, Admin → Dynamic model settings → AI |
 | A7 | Итоги + Q&A | 5–10 | | Что из показанного 3.0, что 3.1 preview. Как начать завтра: toolkit в проект, ссылки | слайд |
@@ -48,7 +48,7 @@
 | B1 | Проект двумя путями | 7 | | Studio New Project и `jmix` CLI — одни шаблоны. Структура проекта, запуск, логин | Studio, терминал |
 | B2 | Приложение из существующей БД | 15 | | PostgreSQL с CRM-схемой и данными уже поднят. Studio → Data Store → Generate Model from DB → Client, Contact, Category, Product, Order, OrderLine → entities со связями → Create Views (list+detail) → run: данные на экране. Liquibase не трогает существующие таблицы | Studio, `git checkout b/02-model`, `b/03-views` |
 | B3 | Доработка руками | 10 | | Атрибут `rating` в Client → Studio генерит changelog → поле в detail через дизайнер → resource role «manager: Clients read-only» → логин менеджером | Studio, `b/04-role` |
-| B4 | Мост к AI | 5–10 | да | Toolkit установлен, один промпт «list view для Invoice» → результат из ветки; 3 мин CRM AI как тизер части A | `b/05-agent`, стенд :8096 |
+| B4 | Мост к AI | 5–10 | да | Toolkit установлен, один промпт «list view для Invoice» → результат из ветки; 3 мин CRM AI как тизер части A | `b/05-agent`, стенд :8091 |
 | B5 | Итоги | 5 | | Доки, trial, с чего начать | слайд |
 
 ## 5. HTML-runbook
@@ -104,7 +104,7 @@ Action = { kind: 'shell'|'git'|'url'|'studio'|'say', text }
 
 ## 7. Репозитории и ветки (следующая итерация, вне объёма этой)
 
-- `jmix-crm` ветка `demo/ai-app` от `50-dynmodel-ai-agent-tabbed`: стенды, демо-данные под сценарии A4–A6, пример `@ExcludeFromAi`, отчёт с AI JPQL. Build по README ветки, jar'ы в `build/libs`.
+- `jmix-crm` ветка `demo/ai-app` от `50-dynmodel-ai-agent`: стенды, демо-данные под сценарии A4–A6, пример `@ExcludeFromAi`, отчёт с AI JPQL. Build по README ветки, jar'ы в `build/libs`.
 - `jmix-crm` ветка `demo/agent-task` от `main`: результат агентской задачи A2 одним коммитом + промпт в `demo/PROMPT.md`.
 - Новый репо `crm-from-db`: `db/docker-compose.yml` + `db/crm.sql` (PostgreSQL-дамп схемы и демо-данных CRM), ветки `b/01-empty` → `b/02-model` → `b/03-views` → `b/04-role` → `b/05-agent`.
 - Runbook ссылается на ветки и порты по именам из этого раздела.
