@@ -33,7 +33,7 @@
 - [x] A-pre now has checklist items and actions for the CRM AI warm-up, `grep -cF 'executeQuery(jpql='` in application.log, the admin and alice dialogs recorded after the last stand reset, and the imported AI JPQL reports zip (review C6).
 - [ ] Check at rehearsal that alice actually sees Администрирование → Отчёты → Запуск отчётов in the aura-light main view. The code analysis says yes, but it was not observed on a running stand.
 - [ ] Check at rehearsal whether Q1 («Сколько у нас клиентов и кто топ-3 по сумме заказов?») goes through executeQuery or through a report. The system prompt prefers reports for complex aggregations, and if a report is used, no JPQL line appears.
-- [ ] Capture the fallback screenshots at rehearsal into assets/ next to the runbook: a3-cli-command.png (the «CLI command:» line) and a Jmix AI answer (a3-*.png), a4-admin-q1.png and a4-alice-q1.png, a6-*.png for scenario steps 1, 3, 8 and 13, b4-*.png for the B4 CRM AI teaser. The runbook already opens them with `open ~/IdeaProjects/jmix-demo-runbook/assets/…` at the end of A3+, A4, A6 and B4, and both pre-flights list assets/ (review C15). If the runbook lives elsewhere on the demo machine, fix that path.
+- [ ] Capture the fallback screenshots at rehearsal into assets/ next to the runbook: a3-jmix-ai.png (the Jmix AI answer; exactly this name, the last A3 action opens it), a3-cli-command.png (the «CLI command:» line), a4-admin-q1.png and a4-alice-q1.png, a6-*.png for scenario steps 1, 3, 8 and 13, b4-*.png for the B4 CRM AI teaser. The runbook already opens them with `open ~/IdeaProjects/jmix-demo-runbook/assets/…` at the end of A3, A3+, A4, A6 and B4, and both pre-flights list assets/ (review C15). If the runbook lives elsewhere on the demo machine, fix that path.
 - [ ] Closing the live-generation copy without saving: the exact wording of the unsaved-changes dialog in the report designer was not verified.
 
 ## Блоки A6, A7
@@ -75,4 +75,5 @@
 ## Runbook
 
 - [ ] After the rehearsal, block facts, steps and the timer stay in localStorage (`jmix-runbook/v1`); R clears only the current block, and there is no «reset demo» key. Before the demo, delete the key on the demo machine (DevTools → Application → Local Storage) or press R on every block that has a fact.
+- [ ] After merging to main and the GitHub Pages deploy, and before sharing the link at the meetup: `curl -s -o /dev/null -w '%{http_code}' https://fedoseew.github.io/jmix-demo-runbook/docs/images/stage.jpg` must print 200. It is the `og:image`; messengers cache a link preview without the image if they see a 404.
 - [ ] Rehearse each demo once in mirror mode on the real projector: on blocks with long Studio steps (A5, A6, B2) the dock grows to 30% of the screen, so check that the slide stays readable at that size.

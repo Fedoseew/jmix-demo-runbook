@@ -1,96 +1,127 @@
+**Русский** · [English](README.en.md)
+
 # Jmix Demo Runbook
 
-Офлайн-runbook двух демо Jmix: **A — AI × Jmix** (ядро 73 мин, с опцией 80) и **B — Jmix с нуля** (ядро 45 мин, с опцией 55). Страница показывает залу «Сцену» (слайд на фоне Jmix), а докладчику — консоль с повесткой, таймером, заметками и пошаговыми действиями.
+**Открыть онлайн: [fedoseew.github.io/jmix-demo-runbook](https://fedoseew.github.io/jmix-demo-runbook/)**
 
-## Запуск
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-live-2ea44f.svg)](https://fedoseew.github.io/jmix-demo-runbook/)
 
-Открыть `index.html` в браузере с диска. Интернет не нужен: скрипты `content.js`, `core.js`, `app.js` подключаются относительными путями, внешних запросов нет.
+Офлайн-runbook докладчика для двух живых демо [Jmix](https://www.jmix.io/). **Демо A «AI × Jmix»** (73 минуты, с опциональным блоком 80) — AI при разработке на Jmix и внутри Jmix-приложений. **Демо B «Jmix с нуля»** (45 минут, с опциональным блоком 55) — от пустого проекта до приложения из существующей базы. Одна HTML-страница показывает залу слайды на фоне Jmix, а докладчику — консоль с повесткой, таймером, заметками и пошаговыми действиями с копированием команд и промптов.
 
-Подключение к проектору заранее неизвестно, поэтому есть два сценария.
+Для тех, кто был на митапе и хочет пройти демо ещё раз по шагам, повторить его на публичных репозиториях и стендах ([что доступно уже сейчас](docs/guide/ru/demos.md#что-можно-попробовать-уже-сейчас)) или сделать на этой основе свой runbook.
 
-**Второй экран.** Проектор работает как отдельный монитор.
+<p>
+  <img src="docs/images/stage.jpg" alt="Сцена: слайд блока A4 для зала" width="49%">
+  <img src="docs/images/console.jpg" alt="Консоль докладчика на блоке A4 с выбранным шагом" width="49%">
+</p>
 
-1. Открыть `index.html` — это сцена.
-2. Нажать `P` — консоль откроется в новом окне (`index.html?view=console`) и сама подскажет следующий шаг. Если браузер заблокировал окно, сцена напишет об этом; тогда открыть `index.html?view=console` вручную.
-3. Консоль оставить на экране ноутбука, окно сцены перетащить на проектор и нажать в нём `F` (полный экран).
+## Быстрый старт
 
-Окна синхронны: блок, шаг, таймер и тема, переключённые в одном окне, сразу видны в другом. Раскрытые в консоли заметки при этом не схлопываются. В шапке консоли — «Сцена · на связи», пока окно сцены открыто (оно раз в 2 с пишет пульс), и «Сцена не найдена», если его закрыли. Если консоль не в фокусе (после `F` в окне сцены или в Studio), вместо легенды клавиш она пишет «Окно не в фокусе»: `J`, `K`, `C`, `S` уходят в другое окно — щёлкните по консоли.
+Runbook управляется с клавиатуры: на телефоне видна только заставка. Что показывает каждый блок — в [Демо A и B](docs/guide/ru/demos.md).
 
-На сцене без панели сообщения не показываются — их увидел бы зал; исключение — то, без чего не обойтись при подготовке (заблокированное окно, недоступный `localStorage`). Подсказка клавиш сцены видна пару секунд после загрузки и движения мыши; в полном экране курсор прячется.
-
-**Зеркало.** Проектор повторяет экран ноутбука, второго окна нет.
-
-1. Открыть `index.html`, нажать `F`.
-2. Нажать `N` — внизу появится панель докладчика: оставшееся время блока, текущий шаг с копированием и следующий шаг. Сцена ужимается, но остаётся 16:9. Заметок и отставания в панели нет — их увидел бы зал; на паузе цифры приглушены и подписаны «пауза».
-3. `J` / `K` листают шаги, `C` копирует текущий, `S` включает короткую версию (у счётчика появляется «8′ короткая»), `N` скрывает панель. Консоли в зеркале нет, поэтому `?` показывает справку по всем клавишам; закрыть — `?`, `Esc` или щелчок мимо. Справку видит и зал.
-
-Текущий шаг Studio и реплика в панели показываются целиком, копируемые шаги — до трёх строк. Высота панели — по самому длинному шагу блока (не выше 30% экрана), поэтому слайд не меняет размер на каждом `J`, только со сменой блока. Сообщения («Скопировано», сброс таймера) появляются в панели на месте легенды клавиш, а не поверх слайда.
-
-## Клавиши
-
-Клавиши читаются по физической клавише (`event.code`), поэтому работают и в русской раскладке. С `Ctrl`, `Alt`, `Cmd` и в полях ввода не перехватываются; `Space` не перехватывается на кнопках, ссылках и заметках.
-
-| Клавиша | Действие | Где |
-|---|---|---|
-| `←` / `→` | блок | везде |
-| `1` / `2` | демо A / B | везде |
-| `T` | таймер старт / пауза; в течение 3 с после `R` — отмена сброса | везде |
-| `R` | сброс таймера блока на паузу, `R` или `T` за 3 с отменяют | везде |
-| `F` | полный экран | везде |
-| `P` | открыть консоль в новом окне | сцена |
-| `N` | панель для зеркала | сцена |
-| `J` / `Space`, `K` | следующий / предыдущий шаг | консоль; сцена с открытой панелью |
-| `C` | копировать текущий шаг (на реплике и шаге Studio — сообщение, что шаг не копируется) | консоль; сцена с открытой панелью |
-| `S` | короткая версия (шаги с меткой `[8]`) | консоль; сцена с открытой панелью |
-| `L` | светлая сцена | везде |
-| `?` (`/` с `Shift` или без) | справка по всем клавишам; `?`, `Esc` или щелчок мимо закрывают | везде |
-
-Автоповтор зажатой клавиши игнорируется: зажатая `→` не пролистывает блоки, зажатая `R` не переключает сброс и отмену.
-
-## Таймер
-
-Таймер встаёт на паузу только по `T`. Сам он стартует только при переходе с pre-flight на первый блок того же демо; щелчок по повестке с pre-flight (например, чтобы перечитать заметки к A4) и возврат `1` / `2` через pre-flight другого демо его не запускают. При переходе между блоками (`←` / `→`, `1` / `2`, щелчок по повестке) время блока уходит в факт, а идущий таймер идёт дальше уже по новому блоку. Блок, пролистанный быстрее 30 секунд (например, пропущенный опциональный), факта не получает и в план/факт не идёт. На заставке pre-flight таймер стоит.
-
-## Что где хранится
-
-Общее состояние окон — демо, блок, позиция в каждом демо, таймер, факт по блокам, шаг по каждому блоку, короткая версия, светлая сцена — лежит в `localStorage` под ключом `jmix-runbook/v1` и переживает F5; сохранённое старыми версиями читается. Второе окно узнаёт об изменении по событию `storage`. Позиция в каждом демо общая, поэтому случайное `2` в одном окне и `1` в другом возвращают на тот же блок; демо, открытое впервые, начинается с pre-flight. Окно сцены раз в 2 с пишет пульс в `jmix-runbook/stage` — по нему консоль показывает, открыта ли сцена. Вид окна (сцена или консоль) берётся из адреса и в хранилище не пишется; открытая панель зеркала запоминается только для вкладки. Отметки чек-листа pre-flight живут в окне до F5: переход между блоками, `L` и смена демо их не сбрасывают.
-
-## Как править контент
-
-Всё содержимое — в `content.js`, объект `DEMOS`. У блока: `id`, `title`, `minutes`, `optional`, `pre`, `exit`, `slide` (3–6 буллетов, у pre-flight 4–12), `notes`, `actions` (`shell` | `git` | `url` | `studio` | `say`).
-
-Две конвенции в тексте действий:
-
-- **Метка `[8]` в начале текста** — шаг короткой версии. В консоли он получает бейдж «8′», из копируемого текста метка убирается. Клавиша `S` оставляет в блоке только такие шаги, и `J` / `K` проходят только по ним.
-- **Строка «… промпт из следующей строки …»** (`studio`) превращает следующее `studio`-действие в шаг-промпт с копированием; «два промпта» — два следующих. Промпт входит в короткую версию, если в неё входит вводящий его шаг, поэтому метку `[8]` ставят только на вводящую строку.
-
-Правила, которые проверяют тесты:
-
-- Каждый вопрос к модели (CRM AI, Jmix AI, дизайнер отчётов) — отдельный шаг-промпт после вводящей строки.
-- Каждый запуск `jmix` на сцене — с `--no-update`; A-pre гоняет ту же команду, что A3.
-- У каждого абзаца заметок есть лид для консоли: первое предложение, «…:» или кусок до « — » не длиннее 56 символов. Без лида свёрнутый абзац в консоли теряет жирное начало.
-- Тезис слайда — не длиннее 90 символов.
-- Jar стенда — один путь `~/demo-jars/crm.jar` в обоих pre-flight.
-
-После правки:
+Откройте [сайт](https://fedoseew.github.io/jmix-demo-runbook/) или работайте офлайн:
 
 ```bash
-node --test
+git clone https://github.com/Fedoseew/jmix-demo-runbook.git
+open jmix-demo-runbook/index.html   # Windows: start, Linux: xdg-open
 ```
 
-Тесты проверяют суммы минут (A 73 / 80, B 45 / 55) и точки выхода, уникальность id, размер слайдов, ссылки на ветки и стенд из spec, правила контента выше, логику `core.js` (темп, таймер при переходах, шаги, синхронизация окон, типографика без lookbehind), а также разметку: нет внешних ресурсов, контраст текста ≥ 4.5:1 (и в светлой панели), текст консоли ≥ 14px, текст панели зеркала и справки ≥ 18px, панель не обрезает шаги Studio, справка `?` называет каждую клавишу, которую читает `app.js`.
+Сервер, сборка и интернет не нужны. Главные клавиши (все — по `?` и в [руководстве](docs/guide/ru/usage.md#клавиши)):
 
-## Структура
+| Клавиша | Действие |
+|---|---|
+| `←` / `→` | предыдущий / следующий блок |
+| `P` | консоль докладчика в новом окне (второй экран) |
+| `N` | панель докладчика внизу сцены (проектор зеркалит экран) |
+| `T` | таймер блока: старт / пауза |
+| `J` / `K` | следующий / предыдущий шаг в консоли или панели |
 
-- `index.html` — разметка, CSS и SVG-спрайт.
-- `content.js` — данные обоих демо.
-- `core.js` — чистая логика без DOM (тестируется в Node).
-- `app.js` — DOM: сцена, консоль, панель зеркала, клавиши, синхронизация окон.
+## Документация
 
-## Документы
+| Руководство | О чём |
+|---|---|
+| [Как вести демо](docs/guide/ru/usage.md) | второй экран или зеркало, все клавиши, таймер, шаги и короткая версия, pre-flight, если что-то не так |
+| [Демо A и B](docs/guide/ru/demos.md) | аудитория, цели, тайминг с опциональными блоками и точками выхода, что показывает каждый блок, что подготовить |
+| [Как править контент](docs/guide/ru/content.md) | схема `content.js`, поля блока, конвенции, тесты, свой runbook и публикация на GitHub Pages |
+| [Архитектура](docs/guide/ru/architecture.md) | файлы, модель состояния, синхронизация двух окон, тесты, инструменты для скриншотов и смоука |
 
-- Spec: `docs/superpowers/specs/2026-10-07-jmix-demo-runbook-design.md` (UI «Сцена» — §10, таймер — §10.6)
-- План v1: `docs/superpowers/plans/2026-10-07-jmix-demo-runbook.md`
-- План UI «Сцена»: `docs/superpowers/plans/2026-10-08-stage-ui.md`
-- Ревью 2026-10-08: `docs/review-2026-10-08.md` (что изменилось по нему — spec §11)
-- Открытые вопросы к репетиции: `docs/open-questions.md`
+Также: [открытые вопросы к репетиции](docs/open-questions.md) · [spec](docs/superpowers/specs/2026-10-07-jmix-demo-runbook-design.md) · [ревью 2026-10-08](docs/review-2026-10-08.md) · [инструкции для AI-агентов](AGENTS.md)
+
+## Структура репозитория
+
+```text
+jmix-demo-runbook/
+├── index.html              разметка, CSS, SVG-спрайт (логотип, иконки, QR), meta и Open Graph
+├── content.js              контент обоих демо: слайды, заметки, шаги (globalThis.DEMOS)
+├── core.js                 чистая логика без DOM: состояние, таймер, шаги (globalThis.Runbook)
+├── app.js                  DOM: сцена, консоль, панель зеркала, клавиши, синхронизация окон
+├── test/                   node --test: контент, логика, разметка, загрузка страницы
+├── tools/                  shot.mjs — скриншоты, smoke.mjs — смоук двух окон, browser.mjs — общий запуск Playwright
+├── docs/
+│   ├── guide/ru, guide/en  руководства
+│   ├── images/             скриншоты для README, руководств и превью ссылки
+│   ├── open-questions.md   что проверить на репетиции
+│   ├── review-2026-10-08.md  независимое ревью
+│   └── superpowers/        spec и планы реализации (история)
+├── AGENTS.md               инструкции для AI-агентов; CLAUDE.md ссылается на него
+├── .agents/skills/         skills для агентов (в .claude/skills — ссылки на них)
+├── .nojekyll               GitHub Pages отдаёт файлы как есть
+└── LICENSE                 Apache License 2.0
+```
+
+## Полезные ссылки
+
+| Группа | Ссылка | Что это |
+|---|---|---|
+| Runbook | [fedoseew.github.io/jmix-demo-runbook](https://fedoseew.github.io/jmix-demo-runbook/) | этот runbook онлайн |
+| | [Fedoseew/jmix-demo-runbook](https://github.com/Fedoseew/jmix-demo-runbook) | исходники, issues |
+| Репозитории демо | [jmix-agent-toolkit](https://github.com/jmix-framework/jmix-agent-toolkit) | skills, guidelines и инструменты для AI-агентов (A1, A2, B4) |
+| | [jmix-cli](https://github.com/jmix-framework/jmix-cli) | создание проектов из терминала: мастер и `--non-interactive` (A3, B1) |
+| | [jmix-crm](https://github.com/jmix-framework/jmix-crm) | B2B CRM с AI-функциями — стенд демо A4–A6 |
+| | [jmix-crm, ветка 50-dynmodel-ai-agent](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent) | стенд Dynamic Model AI (A6) |
+| | [demo.jmix.io/b2b-crm](https://demo.jmix.io/b2b-crm/login) | та же CRM онлайн |
+| Документация | [docs.jmix.io](https://docs.jmix.io/jmix/) · [Tutorial](https://docs.jmix.io/jmix/tutorial/index.html) | документация Jmix и пошаговый туториал — с чего начать |
+| | [AI Tools](https://docs.jmix.io/jmix/ai-tools/index.html) · [начало работы](https://docs.jmix.io/jmix/ai-tools/getting-started.html) | add-on AI Tools: LLM-ассистент в приложении отвечает на вопросы по данным (CRM AI, A4) |
+| | [Jmix AI в Studio](https://docs.jmix.io/jmix/studio/ai-assistant.html) · [Coding assistance](https://docs.jmix.io/jmix/studio/coding-assistance.html) | чат по документации (A3) и Ask AI about code (A3+); инспекции и quick-fix'ы Studio, которые ловят ошибки агента (A2) |
+| | [Dynamic Model](https://docs.jmix.io/jmix/dyn-model/index.html) | новые сущности и атрибуты в работающем приложении без кода и перезапуска (A6) |
+| | [Отчёты](https://docs.jmix.io/jmix/reports/index.html) | add-on Reports: отчёты по шаблонам; AI-generated JPQL — в 3.1 preview (A5) |
+| | [Reverse engineering](https://docs.jmix.io/jmix/studio/reverse-engineering.html) · [Data stores](https://docs.jmix.io/jmix/studio/data-stores.html) | модель из существующей БД и хранилища данных (B2) |
+| | [Security](https://docs.jmix.io/jmix/security/index.html) | роли, row-level политики (A4, B3) |
+| Сообщество | [forum.jmix.io](https://forum.jmix.io/) | форум: вопросы и ответы |
+| | [Jmix Studio](https://plugins.jetbrains.com/plugin/14340-jmix) | плагин IntelliJ IDEA |
+
+<details>
+<summary>Ещё ссылки: исходники, AI, примеры, миграция, сообщество</summary>
+
+| Группа | Ссылка | Что это |
+|---|---|---|
+| Исходники | [jmix-framework/jmix](https://github.com/jmix-framework/jmix) | исходники фреймворка Jmix |
+| | [jmix-docs](https://github.com/jmix-framework/jmix-docs) | исходники документации Jmix 3+ |
+| | [What's new](https://docs.jmix.io/jmix/whats-new/index.html) | что нового в версиях |
+| AI | [jmix-mcp-docs](https://github.com/jmix-framework/jmix-mcp-docs) | удалённый MCP-сервер для поиска по документации и примерам Jmix |
+| | [ai-assistant.jmix.io](https://ai-assistant.jmix.io/) | Jmix AI в браузере |
+| | [jmix-ai-backend](https://github.com/jmix-framework/jmix-ai-backend) | бэкенд Jmix AI |
+| Примеры | [jmix-ui-samples](https://github.com/jmix-framework/jmix-ui-samples) · [онлайн](https://demo.jmix.io/ui-samples/) | примеры UI-компонентов |
+| | [jmix-samples-2](https://github.com/jmix-framework/jmix-samples-2) | решения типовых задач |
+| | [jmix-bookstore](https://github.com/jmix-framework/jmix-bookstore) | приложение книжного магазина |
+| | [jmix-petclinic](https://github.com/jmix-framework/jmix-petclinic) | Petclinic на Jmix |
+| | [jmix-onboarding](https://github.com/jmix-framework/jmix-onboarding) | приложение из Tutorial |
+| | [jmix-windturbines](https://github.com/jmix-framework/jmix-windturbines) | mobile-first приложение для обслуживания ветрогенераторов |
+| | [jmix-commercial-addons-demo](https://github.com/jmix-framework/jmix-commercial-addons-demo) | демо коммерческих add-ons |
+| | [demo.jmix.io](https://demo.jmix.io/) | все онлайн-демо |
+| Миграция и инструменты | [jmix-migration-from-v1](https://github.com/jmix-framework/jmix-migration-from-v1) | шаблон AI-миграции с Jmix 1.x на 2.x |
+| | [jmix-migration-from-cuba-platform](https://github.com/jmix-framework/jmix-migration-from-cuba-platform) | шаблон AI-миграции с CUBA Platform 7.2 на Jmix 2.x |
+| | [jmix-masquerade](https://github.com/jmix-framework/jmix-masquerade) | библиотека UI-тестов |
+| | [jmix-dependencies-tool](https://github.com/jmix-framework/jmix-dependencies-tool) | зависимости Jmix для изолированных сред без интернета |
+| Сообщество | [jmix.io](https://www.jmix.io/) | сайт Jmix |
+| | [Marketplace](https://www.jmix.io/marketplace/) | add-ons |
+| | [Обучение](https://www.jmix.io/training/) | курсы для команд |
+| | [YouTube](https://www.youtube.com/channel/UCEmWc8OwhgHnAV7vVVxtglQ) | видео и вебинары |
+| | [github.com/jmix-framework](https://github.com/jmix-framework) · [github.com/jmix-projects](https://github.com/jmix-projects) | все репозитории; в jmix-projects — старые примеры и демо |
+
+</details>
+
+## Лицензия и участие
+
+Код и тексты — под [Apache License 2.0](LICENSE). Берите runbook за основу своего демо: fork, свой `content.js`, свои цвета и QR — пошагово в [«Как править контент»](docs/guide/ru/content.md#свой-runbook-на-основе-этого). Нашли ошибку или есть идея — [issue](https://github.com/Fedoseew/jmix-demo-runbook/issues) или pull request; перед PR прогоните `node --test`, коммиты — в стиле conventional commits.
