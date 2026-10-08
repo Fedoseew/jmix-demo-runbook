@@ -145,8 +145,8 @@
   .c-keys { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); white-space: nowrap; }
   .c-keys span { display: inline-flex; align-items: center; gap: 3px; }
   .c-keys kbd { padding: 2px 4px; }
-  /* консоль не в фокусе (после F в окне сцены, в Studio): легенда клавиш уступает место предупреждению */
-  .c-away { display: none; margin: 0 0 0 auto; font-size: 14px; color: var(--yellow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  /* консоль не в фокусе (после F в окне сцены, в Studio): легенда клавиш уступает место предупреждению; flex-basis 0 — длинный текст обрезается, а не переносит шапку */
+  .c-away { display: none; flex: 1 1 0; text-align: right; margin: 0 0 0 auto; font-size: 14px; color: var(--yellow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   html.away .c-keys { display: none; }
   html.away .c-away { display: block; }
   .c-gh { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); text-decoration: none; white-space: nowrap; padding: 4px 2px; }
@@ -154,6 +154,10 @@
   .c-gh svg { width: 16px; height: 16px; flex: none; }
   /* 1190–1279: GitHub только значком (имя ссылки в aria-label), зазоры плотнее — шапка остаётся в одну строку */
   @media (max-width: 1279px) { .c-gh span { display: none; } .c-top { column-gap: 8px; } .c-keys { gap: 6px; } }
+  /* шапка в одну строку от 1024: ниже 1280 нет подсказки «1 2 демо» (эти клавиши уже на вкладках демо), ниже 1190 — часов, ниже 1100 — «L свет» (все клавиши — в справке «?») */
+  @media (max-width: 1279px) { .c-keys .k-demo { display: none; } }
+  @media (max-width: 1189px) { .c-clock { display: none; } }
+  @media (max-width: 1099px) { .c-keys .k-light { display: none; } }
   .c-clock { font: 600 15px var(--sans); font-variant-numeric: tabular-nums; color: var(--ink);
     padding-left: 10px; border-left: 1px solid var(--line); }
 

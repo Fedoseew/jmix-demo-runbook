@@ -124,7 +124,7 @@ test('jar стенда — один путь ~/demo-jars/crm.jar в обоих p
 
 test('A-pre готовит fallback\'и A4–A6', () => {
   const pre = A['A-pre'].actions.map(a => a.text).join('\n');
-  for (const re of [/executeQuery\(jpql=/, /alice \/ alice/, /«Импортировать» zip/, /start aura-dark/, /8092/]) assert.match(pre, re);
+  for (const re of [/executeQuery\(jpql=/, /alice \/ alice/, /«Импортировать» \S*demo\/reports\/ai-jpql-reports\.zip/, /start aura-dark/, /8092/]) assert.match(pre, re);
 });
 
 test('A6: полная версия — шаги 1, 2, 3, 8, 9, 13; шаги 10–12 в резерве', () => {

@@ -211,3 +211,11 @@ test('полоса процесса — под чертой заголовка; 
   assert.ok(arrow, 'нет --s-arrow у .stage.light');
   for (const bg of ['#FFFFFF', '#ECEDF6']) assert.ok(contrast(arrow, bg) >= 3, `${arrow} на ${bg}: ${contrast(arrow, bg).toFixed(2)}`);
 });
+
+test('шапка консоли в одну строку от 1024: «1 2 демо» до 1280, часы до 1190, «L свет» до 1100 уступают место', () => {
+  assert.match(html, /@media \(max-width: 1279px\) \{ \.c-keys \.k-demo \{ display: none; \} \}/);
+  assert.match(html, /@media \(max-width: 1189px\) \{ \.c-clock \{ display: none; \} \}/);
+  assert.match(html, /@media \(max-width: 1099px\) \{ \.c-keys \.k-light \{ display: none; \} \}/);
+  assert.match(fnSrc('consoleHTML'), /<span class="k-demo"><kbd>1<\/kbd><kbd>2<\/kbd> демо<\/span>/);
+  assert.match(fnSrc('consoleHTML'), /<span class="k-light"><kbd>L<\/kbd> свет<\/span>/);
+});

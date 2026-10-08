@@ -269,7 +269,7 @@
         <div class="c-brand">${logo('')}<span class="cap">Консоль докладчика</span></div>
         <nav class="seg-ctl" aria-label="Демо">${tabs}</nav>
         <span class="c-pill" data-link><i></i>Сцена<span data-link-text></span></span>
-        <div class="c-keys"><span><kbd>←</kbd><kbd>→</kbd> блок</span><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>C</kbd> копия</span><span><kbd>T</kbd> таймер</span><span><kbd>R</kbd> сброс</span><span><kbd>1</kbd><kbd>2</kbd> демо</span><span><kbd>F</kbd> экран</span><span><kbd>L</kbd> свет</span></div>
+        <div class="c-keys"><span><kbd>←</kbd><kbd>→</kbd> блок</span><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>C</kbd> копия</span><span><kbd>T</kbd> таймер</span><span><kbd>R</kbd> сброс</span><span class="k-demo"><kbd>1</kbd><kbd>2</kbd> демо</span><span><kbd>F</kbd> экран</span><span class="k-light"><kbd>L</kbd> свет</span></div>
         <p class="c-away">Окно не в фокусе — клавиши уходят в другое окно; щёлкните по консоли</p>
         <a class="c-gh" href="https://github.com/Fedoseew/jmix-demo-runbook" target="_blank" rel="noopener" title="Репозиторий runbook на GitHub" aria-label="GitHub: репозиторий runbook">${icon('i-github')}<span>GitHub</span></a>
         <span class="c-clock" data-clock>${clockText()}</span>
