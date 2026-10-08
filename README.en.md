@@ -37,6 +37,21 @@ No server, build or internet needed. The essential keys (all of them: press `?`,
 | `T` | block timer start / pause |
 | `J` / `K` | next / previous step in the console or the dock |
 
+### Preparing a demo
+
+The `./demo` script (bash, macOS and Linux; projects in `~/IdeaProjects`) brings up the stand, the database and the pre-flight:
+
+```bash
+./demo setup     # once: the jmix-crm-stand worktree on demo/ai-app, the jar ~/demo-jars/crm.jar, a clone of crm-from-db, Playwright
+./demo up a      # the aura-light stand on :8091 (demo A and the B4 teaser); ./demo up b also starts PostgreSQL on :5434
+./demo prepare   # the day before, after ./demo reset: the A4 dialogs and the fallback screenshots in assets/
+./demo check     # pre-flight: a PASS / WARN / FAIL table
+./demo reset b   # after a demo B rehearsal: the crm-from-db database from the dump
+./demo down      # stop the stand and the database
+```
+
+Or from IntelliJ IDEA: project `~/IdeaProjects/jmix-crm-stand`, run configuration «Stand aura-light (OpenAI)» instead of `./demo up a`; project `crm-from-db`, «crm-from-db database» and «crm-from-db app». You need JDK 21, Docker (demo B) and the key `SPRING_AI_OPENAI_APIKEY` in the environment. Every command: `./demo help` and [Demos A and B → What to prepare](docs/guide/en/demos.md#what-to-prepare).
+
 ## Documentation
 
 | Guide | About |
@@ -56,8 +71,9 @@ jmix-demo-runbook/
 ├── content.js              content of both demos: slides, notes, steps (globalThis.DEMOS)
 ├── core.js                 pure logic without the DOM: state, timer, steps (globalThis.Runbook)
 ├── app.js                  the DOM: stage, console, mirror dock, keys, window sync
+├── demo                    demo preparation: stand, database, pre-flight (./demo help)
 ├── test/                   node --test: content, logic, markup, page loading
-├── tools/                  shot.mjs for screenshots, smoke.mjs for a two-window smoke test, capture-fallbacks.mjs for fallback screenshots from the stands, browser.mjs, the shared Playwright launcher
+├── tools/                  shot.mjs for screenshots, smoke.mjs for a two-window smoke test, capture-fallbacks.mjs for fallback screenshots from the stand, browser.mjs, the shared Playwright launcher
 ├── assets/README.md        which fallback screenshots are needed and how to capture them (the PNG files are git-ignored)
 ├── docs/
 │   ├── guide/ru, guide/en  guides

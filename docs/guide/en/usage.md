@@ -129,14 +129,27 @@ The first block of each demo (A-pre, B-pre) is the setup before the audience arr
 
   ![The demo A pre-flight holding slide with the agenda and the repository QR code](../../images/holding.jpg)
 
-- **The presenter sees a checklist** in the console. Ticks live in the window until F5: moving between blocks, `L` and switching demos keep them. Below the checklist are the setup notes; the «Действия» (actions) column on the right holds the setup steps (stand, keys, CLI, jar build).
+- **The presenter sees a checklist** in the console. Ticks live in the window until F5: moving between blocks, `L` and switching demos keep them. Below the checklist are the setup notes; the «Действия» (actions) column on the right holds the setup steps: the `./demo` commands and the manual checks (Studio, the A2 agent, the browser).
 - The timer is stopped on the holding slide. It starts by itself only when you move from the holding slide to the demo's first block; after going back from it to any other block, press `T`.
 
 The last block of each demo (A7, B5) tells the audience where to find the materials.
 
+**The infrastructure** of the demos comes up with the `./demo` script in the runbook folder; what runs where and every command are in [Demos A and B → What to prepare](demos.md#what-to-prepare).
+
+```bash
+./demo setup                     # once: the jmix-crm-stand worktree, the stand jar, a clone of crm-from-db
+./demo up a                      # the stand on :8091; ./demo up b also starts PostgreSQL on :5434 for demo B
+./demo reset && ./demo prepare   # the day before, after the rehearsal: fresh database, A4 dialogs, screenshots
+./demo reset b                   # after a demo B rehearsal: the database from the dump, then the app and the user sales
+./demo check                     # pre-flight: PASS / WARN / FAIL, exit code 1 on any FAIL
+./demo down                      # after the demo
+```
+
+Instead of `./demo up a` you can start the stand in IntelliJ IDEA: project `~/IdeaProjects/jmix-crm-stand`, run configuration «Stand aura-light (OpenAI)»; the other commands work with it too.
+
 Before the talk:
 
-1. Go through the pre-flight checklist.
+1. `./demo check` with no FAIL, then the manual items of the pre-flight checklist.
 2. **Clear the rehearsal data.** Block actuals, steps and the timer live in `localStorage` and survive a browser restart; `R` clears only the current block. Before the talk, delete the `jmix-runbook/v1` key (DevTools → Application → Local Storage) or run `localStorage.removeItem('jmix-runbook/v1')` in the DevTools console.
 3. Rehearse once in mirror mode on the real projector: on blocks with long Studio steps (A5, A6, B2) the dock takes up to 30% of the screen.
 4. Close the items in [docs/open-questions.md](../../open-questions.md) (partly in Russian) that apply to your venue.
@@ -156,6 +169,7 @@ Before the talk:
 | The agenda shows actuals from the rehearsal | Delete the `jmix-runbook/v1` key, see [Pre-flight](#pre-flight). |
 | The timer is not running | `T` pauses it and `R` resets it to paused (`R` or `T` within 3 s undo the reset); on the pre-flight holding slide it is always stopped. |
 | Timer stopped after visiting pre-flight | A move onto pre-flight stops the timer, and it starts by itself only on the first block. Press `T`. |
+| The stand does not answer or hangs on «Waiting for changelog lock» | `./demo logs` shows the tail of the stand log. After a `kill` or a reboot without a stop the stand database is broken: `./demo reset`. Stop the stand only with `./demo down` or one press of Stop in IDEA. |
 | Bullets look small | The slide shrinks bullets that don't fit, but never below 28px at 1280 wide. Shorten the bullets or enlarge the window. |
 
 ---

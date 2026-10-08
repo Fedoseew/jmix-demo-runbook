@@ -98,7 +98,7 @@ Block = {
 ## 6. Pre-flight чек-лист (блок «pre» в обоих демо)
 
 - JDK 21 (JDK, не JRE) в `PATH`; Docker запущен; `docker compose up -d` для PostgreSQL с дампом (демо B).
-- Jar стенда собран накануне из `jmix-crm` ветки `demo/ai-app` и скопирован в `~/demo-jars/crm.jar` — один путь в A-pre и B-pre; стенды стартуют с `STAND_JAR="$HOME/demo-jars/crm.jar"`, SNAPSHOT на месте не собирать. `aura-light` :8091 отвечает (`status` и `curl`).
+- Jar стенда собран накануне из `jmix-crm` ветки `demo/ai-app` и скопирован в `~/demo-jars/crm.jar` — один путь в A-pre и B-pre; стенды стартуют с `STAND_JAR="$HOME/demo-jars/crm.jar"`, SNAPSHOT на месте не собирать. `aura-light` :8091 отвечает (`status` и `curl`). Равноценный способ — run-конфигурация IntelliJ IDEA «Stand aura-light (OpenAI)» в worktree `jmix-crm-stand` (те же аргументы из исходников); ключ в ней — `--crm.dynmodel.api-key=${SPRING_AI_OPENAI_APIKEY:setup-required}`. Умолчание `:setup-required` обязательно в каждом `${…}` конфигурации: IDEA сама подставляет голый `${NAME}` в аргументах программы из своего окружения, и `${SPRING_AI_OPENAI_APIKEY}` положил бы значение ключа в командную строку java (`ps`, заголовок консоли Run); `${NAME:default}` IDEA не распознаёт и оставляет Spring.
 - Ключи проверены только на наличие: `OPENROUTER_API_KEY`, `SPRING_AI_OPENAI_APIKEY`; `ANTHROPIC_API_KEY` — опция.
 - Fallback'и A4–A6 готовы после последнего сброса стенда: CRM AI ответил на прогрев, в логе есть `executeQuery(jpql=`, записаны диалоги admin и alice, оба отчёта AI JPQL в списке (нет — импорт zip), `aura-dark` :8092 запущен и сценарий A6 на нём пройден.
 - Studio открыт на `jmix-crm` и на проекте B; индексация завершена; Jmix AI ответил на пробный вопрос.

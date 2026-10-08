@@ -89,7 +89,6 @@ test('у каждого абзаца заметок есть короткий л
 test('вопросы к CRM AI, Jmix AI и дизайнеру отчётов копируются как промпты', () => {
   const prompts = all().flatMap(b => steps(b).filter(a => a.kind === 'prompt').map(a => a.text));
   for (const q of [
-    'Сколько у нас клиентов?',
     'Как в Jmix 3 показать менеджеру только договоры его клиентов?',
     'Сколько у нас клиентов и кто топ-3 по сумме заказов?',
     'Подготовь Client 360 по этому клиенту за последний год',
@@ -108,23 +107,25 @@ test('каждый запуск jmix на сцене — с --no-update; pre-fli
   assert.ok(A['A-pre'].actions.some(a => a.text.includes(a3)), 'A-pre не повторяет команду A3');
 });
 
-test('jar стенда — один путь ~/demo-jars/crm.jar в обоих pre-flight', () => {
+// Инфраструктуру поднимает ./demo: один стенд aura-light из worktree jmix-crm-stand, jmix-crm остаётся на main.
+test('pre-flight обоих демо поднимает инфраструктуру через ./demo; второго стенда и checkout demo/ai-app нет', () => {
   const src = readText('content.js');
-  assert.doesNotMatch(src, /stands\/crm-ai\.jar/);
-  const jars = [...src.matchAll(/STAND_JAR=\\?"?([^"\\\s]+)/g)].map(m => m[1]);
-  assert.ok(jars.length >= 3 && jars.every(j => j === '$HOME/demo-jars/crm.jar'), jars.join(', '));
+  assert.doesNotMatch(src, /aura-dark|8092|9192/, 'второй стенд');
+  assert.doesNotMatch(src, /checkout demo\/ai-app/, 'checkout demo/ai-app');
+  const stands = [...src.matchAll(/~\/IdeaProjects\/([\w-]+)\/demo\/dynmodel-ai-agent/g)].map(m => m[1]);
+  assert.ok(stands.length >= 1 && stands.every(d => d === 'jmix-crm-stand'), stands.join(', '));
   for (const id of ['a', 'b']) {
     const pre = DEMOS[id].blocks[0].actions.map(a => a.text).join('\n');
-    // cp -n на macOS при готовой копии завершается с кодом 1: шаг выглядел бы упавшим
-    assert.match(pre, /\[ -f "\$HOME\/demo-jars\/crm\.jar" \] \|\| cp \S+ "\$HOME\/demo-jars\/crm\.jar"/, `${id}: нет идемпотентной копии jar`);
-    assert.doesNotMatch(pre, /cp -n/, `${id}: cp -n`);
-    assert.match(pre, /stands\.sh status aura-light/, `${id}: нет проверки status`);
+    assert.match(pre, new RegExp(`demo up ${id}$`, 'm'), `${id}: нет ./demo up ${id}`);
+    assert.match(pre, new RegExp(`demo check ${id}$`, 'm'), `${id}: нет ./demo check ${id}`);
   }
 });
 
-test('A-pre готовит fallback\'и A4–A6', () => {
+test('A-pre готовит fallback\'и A4–A6 через ./demo; A6 открывает скриншоты', () => {
   const pre = A['A-pre'].actions.map(a => a.text).join('\n');
-  for (const re of [/executeQuery\(jpql=/, /alice \/ alice/, /«Импортировать» \S*demo\/reports\/ai-jpql-reports\.zip/, /start aura-dark/, /8092/]) assert.match(pre, re);
+  for (const re of [/\.\/demo setup/, /\.\/demo reset/, /\.\/demo prepare/, /alice \/ alice/, /Stand aura-light \(OpenAI\)/]) assert.match(pre, re);
+  assert.doesNotMatch(pre, /ai-jpql-reports\.zip/, 'ручной импорт отчётов');
+  assert.equal(A.A6.actions.at(-1).text, 'open ~/IdeaProjects/jmix-demo-runbook/assets/a6-*.png');
 });
 
 test('A6: полная версия — шаги 1, 2, 3, 8, 9, 13; шаги 10–12 в резерве', () => {

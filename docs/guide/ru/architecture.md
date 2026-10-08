@@ -21,8 +21,9 @@
 | `content.js` | данные обоих демо — `globalThis.DEMOS` ([схема](content.md#схема-demos)) |
 | `core.js` | чистая логика без DOM — `globalThis.Runbook`: загрузка и проверка состояния, таймер и переходы, темп, классификация шагов, лиды заметок, типографика, `flowOf`. Тестируется в Node |
 | `app.js` | DOM: сцена, консоль, панель зеркала, клавиши, копирование, таймер на экране, синхронизация окон |
-| `test/` | `node --test`: `content`, `core`, `html`, `app` и загрузчик `load.mjs` |
-| `tools/` | `shot.mjs` (скриншот), `smoke.mjs` (смоук двух окон), `capture-fallbacks.mjs` (скриншоты-fallback со стендов демо, см. `assets/README.md`), `browser.mjs` (запуск Chromium для всех трёх) |
+| `demo` | bash-скрипт инфраструктуры демо, к странице не относится: стенд, база crm-from-db, pre-flight (`./demo help`, [что где работает](demos.md#что-подготовить)) |
+| `test/` | `node --test`: `content`, `core`, `html`, `app`, `demo-script` и загрузчик `load.mjs` |
+| `tools/` | `shot.mjs` (скриншот), `smoke.mjs` (смоук двух окон), `capture-fallbacks.mjs` (скриншоты-fallback со стенда демо, см. `assets/README.md`), `browser.mjs` (запуск Chromium для всех трёх), `StandKeyCheck.java` (`./demo check` спрашивает стенд по JMX, заданы ли ключи; печатает только set или missing) |
 | `.agents/skills/` | skills для агентов; в `.claude/skills/` — относительные символьные ссылки на них. На Windows включите ссылки до клонирования (`git config --global core.symlinks true` в режиме разработчика) или скопируйте `.agents/skills/*` в `.claude/skills/` |
 
 ```mermaid
@@ -139,6 +140,7 @@ node --test
 - `content.test.mjs` — правила контента (см. [content.md](content.md#проверка)).
 - `html.test.mjs` — разметка и CSS: внешние ресурсы, порядок скриптов, контраст, размеры шрифтов, справка.
 - `app.test.mjs` — `app.js` без `content.js` или `core.js` пишет причину, а не падает.
+- `demo-script.test.mjs` — `bash -n demo`, `./demo help` перечисляет все подкоманды, неизвестная завершается с кодом 2.
 
 Поведение в браузере проверяют инструменты ниже.
 

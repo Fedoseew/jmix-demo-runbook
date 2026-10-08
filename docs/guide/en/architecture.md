@@ -21,8 +21,9 @@ A static page with no build step and no dependencies: three scripts and `index.h
 | `content.js` | the data for both demos, `globalThis.DEMOS` ([schema](content.md#the-demos-schema)) |
 | `core.js` | pure logic without the DOM, `globalThis.Runbook`: loading and validating state, the timer and block changes, pace, step classification, note leads, typography, `flowOf`. Tested in Node |
 | `app.js` | the DOM: stage, console, mirror dock, keys, copying, the on-screen timer, window sync |
-| `test/` | `node --test`: `content`, `core`, `html`, `app`, plus the `load.mjs` loader |
-| `tools/` | `shot.mjs` (screenshot), `smoke.mjs` (two-window smoke test), `capture-fallbacks.mjs` (fallback screenshots from the demo stands, see `assets/README.md`), `browser.mjs` (Chromium launcher for all three) |
+| `demo` | bash script for the demo infrastructure, not part of the page: the stand, the crm-from-db database, the pre-flight (`./demo help`, [what runs where](demos.md#what-to-prepare)) |
+| `test/` | `node --test`: `content`, `core`, `html`, `app`, `demo-script`, plus the `load.mjs` loader |
+| `tools/` | `shot.mjs` (screenshot), `smoke.mjs` (two-window smoke test), `capture-fallbacks.mjs` (fallback screenshots from the demo stand, see `assets/README.md`), `browser.mjs` (Chromium launcher for all three), `StandKeyCheck.java` (`./demo check` asks the stand over JMX whether its keys are set; prints only set or missing) |
 | `.agents/skills/` | agent skills; `.claude/skills/` holds relative symlinks to them. On Windows, enable symlinks before cloning (`git config --global core.symlinks true` with Developer Mode on) or copy `.agents/skills/*` into `.claude/skills/` |
 
 ```mermaid
@@ -139,6 +140,7 @@ node --test
 - `content.test.mjs`: content rules (see [content.md](content.md#checking-your-changes)).
 - `html.test.mjs`: markup and CSS (external resources, script order, contrast, font sizes, the key reference).
 - `app.test.mjs`: `app.js` without `content.js` or `core.js` reports the reason instead of crashing.
+- `demo-script.test.mjs`: `bash -n demo`, `./demo help` lists every subcommand, an unknown one exits with code 2.
 
 The tools below check behaviour in a real browser.
 

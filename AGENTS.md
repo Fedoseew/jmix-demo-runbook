@@ -14,8 +14,9 @@ An offline presenter runbook for two live Jmix demos: A "AI × Jmix" (73 min cor
 | `content.js` | `globalThis.DEMOS`: both demos' blocks (slides, notes, actions) |
 | `core.js` | `globalThis.Runbook`: pure logic without the DOM, tested in Node |
 | `app.js` | DOM: stage, console, dock, keys, copy, timer painting, two-window sync |
+| `demo` | bash entry point for the demo infrastructure (not a page file): `setup`, `check`, `up`, `prepare`, `reset`, `down`, `status`, `logs`; `./demo help` |
 | `test/*.test.mjs` | `node --test`, no dependencies; `test/load.mjs` runs project files in `node:vm` |
-| `tools/` | `shot.mjs` screenshots, `smoke.mjs` two-window smoke test, `capture-fallbacks.mjs` fallback screenshots from the running demo stands, `browser.mjs` shared Playwright launcher |
+| `tools/` | `shot.mjs` screenshots, `smoke.mjs` two-window smoke test, `capture-fallbacks.mjs` fallback screenshots from the running demo stand, `browser.mjs` shared Playwright launcher, `StandKeyCheck.java` (run by `./demo check`: asks the stand over JMX 9191 whether its keys are set, prints only `set` or `missing`, never the value) |
 | `assets/` | rehearsal fallback screenshots (git-ignored); `assets/README.md` lists every file `content.js` opens and how to capture it |
 | `docs/guide/{ru,en}/` | user guides: `usage`, `demos`, `content`, `architecture` |
 | `docs/superpowers/` | spec and plans. History: do not move or rewrite. Spec §10–11 is the UI contract |
@@ -28,10 +29,11 @@ An offline presenter runbook for two live Jmix demos: A "AI × Jmix" (73 min cor
 node --test                                    # all tests; run after every change
 node tools/shot.mjs <url|path> <out.png|.jpg> [stateJSON|-] [w] [h] [KeyN,KeyJ,...]
 node tools/smoke.mjs [url|path]                # PASS/FAIL lines, exit 1 on failure
-node tools/capture-fallbacks.mjs [a4] [b4] [a5] [a6]  # fallback screenshots from the running demo stands into assets/ (assets/README.md)
+node tools/capture-fallbacks.mjs [a4] [b4] [a5] [a6]  # fallback screenshots from the running demo stand into assets/ (assets/README.md)
+./demo help                                    # demo infrastructure: setup, check, up, prepare, reset, down, status, logs
 ```
 
-The tools resolve Playwright from `PLAYWRIGHT_MODULE` (a module path such as `/…/node_modules/playwright-core/index.mjs`, or a package name), else `playwright`, else `playwright-core`; the browser from `CHROME_PATH` if set. Without either: `npm i --no-save playwright && npx playwright install chromium` (`node_modules/` is git-ignored). Never install anything globally.
+The tools resolve Playwright from `PLAYWRIGHT_MODULE` (a module path such as `/…/node_modules/playwright-core/index.mjs`, or a package name), else `playwright`, else `playwright-core`; the browser from `CHROME_PATH` if set. Without either: `npm i --no-save playwright && npx playwright install chromium` (`./demo setup` runs it when Chromium does not start; `node_modules/` is git-ignored). Never install anything globally.
 
 ## Hard constraints
 
@@ -46,6 +48,7 @@ The tools resolve Playwright from `PLAYWRIGHT_MODULE` (a module path such as `/�
 - **No `console.log`** in page code (`app.js`, `core.js`, `content.js`). The CLI tools in `tools/` may print.
 - **Immutable state:** every change builds a new state object; `Runbook.loadState` validates every field read from storage.
 - **The audience sees the stage and the dock:** no notes, overrun or debug messages there.
+- **`demo` script:** runs on the macOS bash 3.2 (no associative arrays, `mapfile` or `${x,,}`), stays `shellcheck demo`-clean, and checks `SPRING_AI_OPENAI_APIKEY` only for presence: never print, log or write the key. One stand, `aura-light` on 8091, in the `~/IdeaProjects/jmix-crm-stand` worktree; `jmix-crm` itself stays on `main`.
 
 ## Content conventions
 
@@ -67,6 +70,7 @@ Full reference: `docs/guide/en/content.md`.
 - Logic goes into `core.js` with a test in `test/core.test.mjs` first; `app.js` stays DOM glue.
 - UI or content change: screenshot the affected views with `tools/shot.mjs` at 1280×720 (stage, dock) and 1440×900 (console) and look at them; run `tools/smoke.mjs`. Both print page errors and external requests.
 - Regenerate `docs/images/*.jpg` when the UI they show changes (see the `runbook-screenshots` skill).
+- `demo` change: `bash -n demo`, `shellcheck demo` (if installed) and `node --test`; run the changed subcommand for real and stop what it started (`./demo down`).
 
 ## Docs layout
 

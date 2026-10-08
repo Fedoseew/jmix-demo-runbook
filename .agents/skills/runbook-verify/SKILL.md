@@ -16,6 +16,7 @@ Run every step; report each as pass/fail with the evidence (command output or sc
 
 Before a live demo, additionally:
 
+- `./demo check` with no FAIL: the infrastructure pre-flight (stand, keys, jar, database, screenshots); `./demo help` lists the other commands.
 - Open the exact copy that will be presented (from disk, `file://`) and run `node tools/smoke.mjs /path/to/index.html`.
 - Clear rehearsal data afterwards: `localStorage.removeItem('jmix-runbook/v1')` in the page's DevTools console (the smoke test uses its own browser profile, so it does not touch the presenter's).
 - Walk through `docs/open-questions.md` and the pre-flight checklist in the console.

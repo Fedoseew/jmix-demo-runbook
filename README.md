@@ -37,6 +37,21 @@ open jmix-demo-runbook/index.html   # Windows: start, Linux: xdg-open
 | `T` | таймер блока: старт / пауза |
 | `J` / `K` | следующий / предыдущий шаг в консоли или панели |
 
+### Подготовка к демо
+
+Стенд, базу и pre-flight поднимает скрипт `./demo` (bash, macOS и Linux; проекты — в `~/IdeaProjects`):
+
+```bash
+./demo setup     # один раз: worktree jmix-crm-stand на demo/ai-app, jar ~/demo-jars/crm.jar, клон crm-from-db, Playwright
+./demo up a      # стенд aura-light на :8091 (демо A и тизер B4); ./demo up b — ещё PostgreSQL на :5434
+./demo prepare   # накануне, после ./demo reset: диалоги A4 и скриншоты-fallback в assets/
+./demo check     # pre-flight: таблица PASS / WARN / FAIL
+./demo reset b   # после репетиции демо B: база crm-from-db из дампа
+./demo down      # остановить стенд и базу
+```
+
+Или из IntelliJ IDEA: проект `~/IdeaProjects/jmix-crm-stand`, run-конфигурация «Stand aura-light (OpenAI)» вместо `./demo up a`; проект `crm-from-db`, «crm-from-db database» и «crm-from-db app». Нужны JDK 21, Docker (демо B) и ключ `SPRING_AI_OPENAI_APIKEY` в окружении. Все команды — `./demo help` и [Демо A и B → Что подготовить](docs/guide/ru/demos.md#что-подготовить).
+
 ## Документация
 
 | Руководство | О чём |
@@ -56,8 +71,9 @@ jmix-demo-runbook/
 ├── content.js              контент обоих демо: слайды, заметки, шаги (globalThis.DEMOS)
 ├── core.js                 чистая логика без DOM: состояние, таймер, шаги (globalThis.Runbook)
 ├── app.js                  DOM: сцена, консоль, панель зеркала, клавиши, синхронизация окон
+├── demo                    подготовка демо: стенд, база, pre-flight (./demo help)
 ├── test/                   node --test: контент, логика, разметка, загрузка страницы
-├── tools/                  shot.mjs — скриншоты, smoke.mjs — смоук двух окон, capture-fallbacks.mjs — скриншоты-fallback со стендов, browser.mjs — общий запуск Playwright
+├── tools/                  shot.mjs — скриншоты, smoke.mjs — смоук двух окон, capture-fallbacks.mjs — скриншоты-fallback со стенда, browser.mjs — общий запуск Playwright
 ├── assets/README.md        какие скриншоты-fallback нужны и как их снять (сами PNG в .gitignore)
 ├── docs/
 │   ├── guide/ru, guide/en  руководства

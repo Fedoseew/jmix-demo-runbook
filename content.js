@@ -9,82 +9,55 @@ globalThis.DEMOS = {
         minutes: 0,
         pre: true,
         slide: [
-          "JDK 21+ (именно JDK, не JRE) в PATH или JAVA_HOME: java -version и javac -version",
-          "Ключ SPRING_AI_OPENAI_APIKEY (CRM AI и агент) — на наличие; OPENROUTER, ANTHROPIC — опция",
-          "Jar demo/ai-app в ~/demo-jars/crm.jar, aura-light стартовал с этим STAND_JAR — running",
+          "Накануне: ./demo setup — worktree jmix-crm-stand, jar ~/demo-jars/crm.jar, crm-from-db",
+          "После репетиции: ./demo reset и ./demo prepare — свежая база, диалоги A4, скриншоты",
+          "Стенд: ./demo up a или в IDEA «Stand aura-light (OpenAI)» — один из двух, не оба",
+          "./demo check a без FAIL: JDK, ключ (и в стенде), :8091, отчёты A5, JPQL, jmix-crm на main",
           "localhost:8091/b2b-crm/, admin / admin, в меню есть Настройки динамической модели",
-          "CRM AI: без красного уведомления, ответил на прогрев, в логе есть executeQuery(jpql=",
-          "Fallback A4 и A5: диалоги admin и alice в «Истории», оба отчёта AI JPQL в списке",
-          "Fallback A6: стенд aura-dark :8092 запущен, сценарий A6 на нём уже пройден",
-          "jmix-crm на main, tracked-файлы чистые, есть demo/agent-task, промпт A2 в буфере",
+          "CRM AI: в Истории диалоги admin (1–4) и alice (1–2)",
+          "Промпт A2 в буфере; worktree jmix-crm-live и ветки demo/live-run с репетиции нет",
           "Studio: индексация завершена, MCP Server включён, Jmix AI ответил на пробный вопрос",
           "Агент для A2 запускается, залогинен, видит JetBrains MCP — проверено не на проекторе",
-          "Jmix CLI: jmix --help; A3 с --no-update прогнана в crm-cli-ready; каталога crm-cli нет",
-          "Интернет и hotspot проверены, скриншоты в assets/; вкладки стенда и runbook, zoom"
+          "Jmix CLI: A3 с --no-update прогнана в crm-cli-ready; каталога crm-cli нет",
+          "Интернет и hotspot проверены; вкладки стенда и runbook, zoom под проектор"
         ],
         notes: [
-          "Jar стенда собираем накануне. Сборка — по demo/dynmodel-ai-agent/README.md ветки demo/ai-app, раздел «The demo/ai-app branch» → Build (в README_ru.md «Ветка demo/ai-app» → «Сборка»): шаги 2–3 раздела Build публикуют jmix и jmix-premium с master в local Maven (publishToMavenLocal), затем в jmix-crm на ветке demo/ai-app выполняется ./gradlew bootJar, результат — build/libs/crm.jar. Сразу после сборки копируем его в ~/demo-jars/crm.jar (действие mkdir -p ... && { [ -f ... ] || cp ...; }): готовую копию команда не трогает и завершается успешно, поэтому безопасна и на площадке (cp -n не годится: на macOS при готовой копии он завершается с кодом 1); после пересборки jar старую копию удалить осознанно. Та же копия и тот же путь — в B-pre.",
-          "Почему копия вне репозитория. На main bootJar пишет тот же build/libs/crm.jar, но это 3.0.3 без Dynamic Model, а Gate 2 агента в A2 (./gradlew --no-daemon clean test) удаляет build/ целиком; skill jmix-verify-bootrun прямо предупреждает, что подмена архива под работающим процессом даёт ошибки чтения ZIP и ресурсов. SNAPSHOT на площадке не пересобрать: нужен доступ к Jmix Premium и время. Альтернатива — отдельный worktree для demo/ai-app; при подготовке веток выбрана копия, так же написано в README ветки.",
-          "Прогон и сброс накануне. Прогнать сценарии A4–A6 на aura-light → ./stands.sh stop aura-light → удалить папку instances/aura-light (сброс по README: следующий старт создаёт свежую базу с демо-данными CRM, без сущностей, созданных на репетиции) → выключать ноутбук только после stop. Команду A3 один раз выполнить в запасной каталог: jmix --no-update new crm-cli --non-interactive --template application --locales en,ru --path /tmp/jmix-demo/crm-cli-ready. По README CLI офлайн работает только с шаблонами, закешированными в ~/.jmix/, а готовый каталог — запасной вариант A3 без сети. Каталога /tmp/jmix-demo/crm-cli быть не должно (его удаляет действие rm -rf в pre-flight): в него A3 генерирует проект на сцене, а непустой каталог неинтерактивный режим отклоняет.",
-          "Fallback'и A4–A6 готовим после последнего сброса. Сброс стирает базу стенда, поэтому всё, на что опираются запасные варианты, создаётся после него. A4: под admin задать вопросы 1–4, в приватном окне под alice — вопросы 1–2; диалоги остаются в «Истории» каждого пользователя. A5: Администрирование → Отчёты → Отчёты → «Импортировать» (иконка загрузки) → demo/reports/ai-jpql-reports.zip ветки demo/ai-app → OK, в списке оба отчёта «Выручка клиентов». A6: из папки demo/dynmodel-ai-agent выполнить STAND_JAR=\"$HOME/demo-jars/crm.jar\" ./stands.sh start aura-dark, пройти на нём сценарий A6 и оставить стенд запущенным: порт 8092, JMX 9192, ещё около 1 ГБ памяти, на Claude, если задан ANTHROPIC_API_KEY, иначе на gpt-5.4. Скриншоты-fallback снять тогда же: A4, A5, тизер B4 и итог A6 — скриптом tools/capture-fallbacks.mjs, остальные руками по списку в assets/README.md. В день демо pre-flight только проверяет эти артефакты; если чего-то нет — создать сразу, до прихода зала.",
-          "Агент и промпт A2. Агент для A2 (claude, codex, opencode или junie — какой выбран) запустить, убедиться, что он залогинен и видит JetBrains MCP, — не на проекторе: ключ Context7 по README передаётся аргументом команды регистрации MCP и хранится в конфиге агента, поэтому список MCP-серверов и конфиг агента на экран не выводим. Промпт A2 есть только в demo/PROMPT.md ветки demo/agent-task — скопировать в буфер (действие с pbcopy) или держать открытым в отдельном окне.",
-          "Ключи. Терминал, из которого стартует стенд, уже должен содержать ключ: JVM стенда читает окружение при старте, ключ, добавленный позже, требует stop и start. Обязателен один ключ — SPRING_AI_OPENAI_APIKEY: им пользуются CRM AI-ассистент (spring.ai.openai.api-key в application.properties ветки 50-dynmodel-ai-agent, модель gpt-5.4) и агент Dynamic Model. Без OPENROUTER_API_KEY stands.sh запускает агента на OpenAI: --crm.dynmodel.provider=openai, модель gpt-5.4 на api.openai.com, ключ уходит через окружение, а не командной строкой; start печатает «aura-light: started … with OpenAI gpt-5.4». Без SPRING_AI_OPENAI_APIKEY стенд стартует и stands.sh печатает предупреждение, но CRM AI показывает «Ключ OpenAI API не настроен…», а каждый запрос к агенту падает с ошибкой модели. OPENROUTER_API_KEY — опция, MISSING для него ожидаем; если он задан, агент уходит на DeepSeek v4.1 Flash через OpenRouter (оставить gpt-5.4 — STAND_PROVIDER=openai перед start). ANTHROPIC_API_KEY — тоже опция: stands.sh использует его только для aura-dark (Claude), без него aura-dark работает на gpt-5.4, как aura-light. Значения ключей на экран не выводим — только проверки set или MISSING.",
-          "Запуск на площадке. git checkout demo/ai-app, затем из папки demo/dynmodel-ai-agent: STAND_JAR=\"$HOME/demo-jars/crm.jar\" ./stands.sh start aura-light. STAND_JAR указывать при каждом старте: без него stands.sh берёт build/libs/crm.jar из репозитория. start сразу возвращает управление (JVM уходит в фон); свежий стенд на репетиции 9 октября отвечал через 16–23 с после start: до этого status печатает stopped, а curl — 000. Через полминуты ожидаем running и код 302 — редирект на вход (любой код, кроме 000, значит, что порт слушается); если и через минуту 000 — tail application.log. Если файла jar нет, stands.sh пишет «skipped, missing …» и стенд не стартует — поэтому после start всегда status и curl.",
-          "Проверка и обслуживание стенда. Вход admin / admin: в меню должен быть Администрирование → Настройки динамической модели (в английском UI Admin → Dynamic model settings) — признак сборки 3.1; если пункта нет, стенд поднят не с тем jar: stop и старт с правильным STAND_JAR. Статус проверяем только с именем стенда — без аргумента команда печатает всю таблицу. Нужны свободные порт 8091, JMX-порт 9191 и около 1 ГБ памяти; стенд слушает только 127.0.0.1. Останавливать только ./stands.sh stop aura-light (корректная остановка через JMX, поэтому нужен JDK, а не JRE). Если старт висит на «Waiting for changelog lock» (стенд был убит или ноутбук перезагружен без stop) — сбросить сразу, до прихода зала: stop, удалить instances/aura-light, start; свежий стенд с демо-данными отвечает через 20–30 с, после чего fallback'и A4 и A5 подготовить заново: импорт отчётов — секунды, вопросы A4 скриптом tools/capture-fallbacks.mjs a4 — около двух минут.",
-          "Прогрев CRM AI. Открыть CRM AI на стенде: красного уведомления «Ключ OpenAI API не настроен…» быть не должно — иначе ключ не попал в окружение процесса стенда, нужны stop и start из терминала с ключом. Задать прогревочный вопрос (на репетиции gpt-5.4 отвечал за 12–25 с вместе с открытием нового диалога) и проверить, что в application.log есть строка executeQuery(jpql= (действие grep -cF): без неё в A4 JPQL показать нечем. В demo/ai-app DEBUG для io.jmix.aitools.dataload включён, поэтому 0 значит, что стенд поднят не из jar этой ветки (проверить STAND_JAR) или модель ответила без запроса — спросить ещё раз. Ответ на прогрев заодно подтверждает ключ агента A6: stands.sh передаёт ему тот же SPRING_AI_OPENAI_APIKEY из окружения start. Затем проверить диалоги admin и alice в «Истории» и оба отчёта в Администрирование → Отчёты → Отчёты.",
-          "Fallback A6 на aura-dark. Второй стенд стартует той же командой с именем aura-dark и тем же STAND_JAR; если он уже работает, stands.sh ответит «already running». На http://localhost:8092/b2b-crm/ под admin / admin в «Каталоге» должны быть «Демо-клиенты» и «Демо-сделки» со сделкой «Первая поставка». Если результата нет, пройти сценарий A6 на aura-dark сейчас: aura-light должен остаться свежим. Останавливать aura-dark тоже только через stop: после kill или перезагрузки без stop он зависнет на «Waiting for changelog lock».",
-          "Переключение на main и Studio. После старта переводим jmix-crm на main (A1 и A2 идут на main): стенд работает из скопированного jar. На main нет stands.sh — для остановки в конце дня вернуться на demo/ai-app. Папка demo/dynmodel-ai-agent/instances на main не в .gitignore и видна как untracked — не дать агенту её закоммитить (можно локально добавить строку /demo/dynmodel-ai-agent/instances/ в .git/info/exclude). Проверки: git status --short --untracked-files=no пуст, ветка demo/agent-task существует. Если в выводе только M src/main/bundles/dev.bundle — это след запуска приложения в dev-режиме: git checkout -- src/main/bundles/dev.bundle. Смена ветки меняет версию Jmix (3.1.999-SNAPSHOT и 3.0.3) — Studio запускает Gradle sync и переиндексацию, ждём окончания до прихода зала. Settings → Tools → MCP Server: Enable MCP Server — флажок; если уже отмечен, не кликать, иначе MCP выключится прямо перед A2. Jmix AI (tool window в Studio): открыть и задать один пробный вопрос; что нужно для входа в Jmix AI, проверить заранее.",
-          "Jmix CLI. В исходниках jmix-cli опции --version нет: jmix знает подкоманды new и update, флаги --no-update и -h/--help; jmix --help отвечается локально без проверки обновлений. Установленная сборка CLI (не в CI, без JMIX_CLI_NO_AUTO_UPDATE=1 и не чаще раза в 10 минут) перед другими командами проверяет новый релиз и может скачать и установить его — возможная, но не подтверждённая причина того, что jmix --version локально зависал; точную причину проверить заранее. Накануне осознанно выполнить jmix update; на сцене каждая команда jmix идёт с --no-update (флаг принимается и до, и после подкоманды) или в терминале выставлен JMIX_CLI_NO_AUTO_UPDATE=1.",
-          "Сеть и браузер. LLM-вызовы идут наружу: и агент Dynamic Model, и CRM AI — в OpenAI (api.openai.com); проверить Wi-Fi зала, держать hotspot. Скриншоты-fallback лежат в assets/ рядом с runbook: a3-*.png (строка «CLI command:», ответ Jmix AI), a4-*.png, a5-*.png, a6-*.png — их снимают на репетиции (полный список и способ — assets/README.md), наличие проверяет последнее действие. Вкладки: стенд с входом admin / admin и runbook, zoom под проектор, в Studio крупный шрифт. gpt-5.4 иногда отвечает на тот же запрос по-разному, чаще в мелочах: подписи полей со строчной буквы («телефон» вместо «Телефон») — не ошибка, продолжать; странный по сути ответ — просто повторить; после перезагрузки страницы режим AI в настройках динамической модели не восстанавливается — выбрать его снова."
+          "Сборка накануне — ./demo setup. Команда из папки runbook (~/IdeaProjects/jmix-demo-runbook) готовит всё, что собирается: создаёт worktree ~/IdeaProjects/jmix-crm-stand на ветке demo/ai-app (из jmix-crm; сам jmix-crm всё время на main — на нём идут A1 и A2), собирает в нём ./gradlew bootJar и атомарно копирует jar в ~/demo-jars/crm.jar (через crm.jar.new и mv), клонирует crm-from-db, если его нет, и переключает его на b/01-empty (если нет локальных правок), ставит Playwright с Chromium в node_modules runbook, если их нет (для ./demo prepare). Пока стенд работает, setup отказывается: стенд читает классы из своего jar — сначала ./demo down. Ветка собирается против Jmix и Jmix Premium 3.1.999-SNAPSHOT из local Maven; если их там нет, setup печатает команды публикации из README ветки (demo/dynmodel-ai-agent/README.md, Build, шаги 2–3) и завершается с кодом 1. SNAPSHOT на площадке не пересобрать: нужен доступ к Jmix Premium и время. Worktree jmix-crm-stand открыть в IntelliJ IDEA отдельным проектом: в нём run-конфигурация «Stand aura-light (OpenAI)»; соседняя «CRM APP» — не стенд и заняла бы порт 8080 демо B, её не запускать.",
+          "Два способа запустить стенд. ./demo up a запускает stands.sh start aura-light из worktree с STAND_JAR=\"$HOME/demo-jars/crm.jar\" и STAND_PROVIDER=openai (агент всегда на OpenAI, как в run-конфигурации) и ждёт HTTP 302 — редирект на вход (до 120 с; свежий стенд на репетиции отвечал через 16–23 с после start, с отчётами — около 25 с). В IntelliJ IDEA, в проекте jmix-crm-stand, run-конфигурация «Stand aura-light (OpenAI)» запускает то же приложение из исходников с теми же аргументами (перед запуском Make). Оба способа используют порт 8091, JMX-порт 9191, базу и лог в demo/dynmodel-ai-agent/instances/aura-light этого worktree, поэтому ./demo status, check, logs, down и reset работают с любым, а стенд из IDEA ./demo up a видит по занятому порту и второй не стартует. Запускать один из двух. Нужны свободные 8091 и 9191 и около 1 ГБ памяти; стенд слушает только 127.0.0.1.",
+          "Остановка и сброс. Останавливать только ./demo down или одним нажатием Stop в IDEA: корректная остановка через JMX сохраняет базу HSQL. После kill -9 или перезагрузки без остановки стенд виснет на старте с «Waiting for changelog lock» — тогда сразу, до прихода зала, ./demo reset. reset спрашивает подтверждение (-y — без вопроса), останавливает стенд, удаляет instances/aura-light и стартует свежий стенд с демо-данными CRM; если стенд был запущен из IDEA, после удаления запустить run-конфигурацию снова. Отчёты A5 стенд импортирует сам при старте, если их нет (в логе строка «AI JPQL demo reports imported…»), ручного импорта нет; диалоги A4 после сброса записывает ./demo prepare.",
+          "Прогон и fallback'и накануне. Прогнать A4–A6 на стенде, затем ./demo reset и ./demo prepare: всё, на что опираются запасные варианты, создаётся после последнего сброса. prepare (стенд поднят, ключ в окружении) запускает tools/capture-fallbacks.mjs a4 b4 a5: задаёт вопросы A4 под admin (1–4) и alice (1–2) — это и прогрев, и диалоги в «Истории», основной запасной вариант A4, — вопрос тизера B4, открывает и запускает отчёт A5 и обновляет скриншоты в assets/ (Playwright ставит ./demo setup; каждый снимок просмотреть). Запасной вариант A6 — готовые скриншоты assets/a6-*.png, второго стенда нет; a3-*.png снимаются руками (assets/README.md). Команду A3 один раз выполнить в запасной каталог: jmix --no-update new crm-cli --non-interactive --template application --locales en,ru --path /tmp/jmix-demo/crm-cli-ready. По README CLI офлайн работает только с шаблонами, закешированными в ~/.jmix/, а готовый каталог — запасной вариант A3 без сети. Каталога /tmp/jmix-demo/crm-cli быть не должно (его удаляет действие rm -rf): в него A3 генерирует проект на сцене, а непустой каталог неинтерактивный режим отклоняет.",
+          "Автоматический pre-flight — ./demo check a. Таблица PASS / WARN / FAIL: java и javac 21+, SPRING_AI_OPENAI_APIKEY (только наличие), jmix --no-update --help, worktree и jar (WARN, если jar старше головы demo/ai-app: ./demo setup), стенд :8091 с HTTP 302 и тем, кто его запустил, ключи в самом стенде (tools/StandKeyCheck.java спрашивает стенд по JMX 9191 и печатает только set или missing для spring.ai.openai.api-key и crm.dynmodel.api-key: FAIL — стенд стартовал без ключа, ./demo down и ./demo up a из терминала с ключом или перезапуск IDEA), строка импорта отчётов A5 и строки executeQuery(jpql= в логе (их пишет ./demo prepare; 0 после prepare — стенд не из demo/ai-app), jmix-crm на main с чистыми tracked-файлами, ветка demo/agent-task, остатки jmix-crm-live с репетиции, Playwright для ./demo prepare, скриншоты в assets/ (нет файла — WARN: это запасные варианты). Код выхода 1, если есть FAIL; каждая строка FAIL говорит, что сделать. В день демо: ./demo up a, ./demo check a, затем ручные пункты ниже.",
+          "Ключ OpenAI. Обязателен один ключ — SPRING_AI_OPENAI_APIKEY: им пользуются CRM AI-ассистент (spring.ai.openai.api-key в application.properties ветки 50-dynmodel-ai-agent, модель gpt-5.4) и агент Dynamic Model (gpt-5.4 на api.openai.com, своё подключение crm.dynmodel.*). stands.sh передаёт ключ агенту через окружение, run-конфигурация IDEA — плейсхолдером ${SPRING_AI_OPENAI_APIKEY:setup-required}, который Spring берёт из окружения (умолчание :setup-required не убирать: голый ${SPRING_AI_OPENAI_APIKEY} IDEA подставляет сама из своего окружения, и значение ключа попало бы в командную строку java — в ps и в заголовок консоли Run на проекторе): значение не записано нигде и на экран не выводится, ./demo проверяет только наличие. JVM стенда читает окружение при старте: ключ, добавленный позже, требует ./demo down и ./demo up a из терминала с ключом. IDEA на macOS берёт окружение login shell при своём запуске: после правки ~/.zshrc перезапустить IDEA. Без ключа ./demo up a не стартует стенд; стенд из IDEA стартует, но CRM AI показывает «Ключ OpenAI API не настроен…», агент отвечает ошибкой модели, а ./demo check a показывает FAIL в строках ключа стенда. ./demo up a и run-конфигурация всегда запускают агента на OpenAI; OPENROUTER_API_KEY на них не влияет.",
+          "Проверка стенда руками. Вход admin / admin: в меню должен быть Администрирование → Настройки динамической модели (в английском UI Admin → Dynamic model settings) — признак сборки 3.1; если пункта нет, стенд поднят не с тем jar: ./demo setup, затем ./demo down и ./demo up a. Попал ли ключ в процесс стенда (важно для стенда из IDEA, запущенной до правки ~/.zshrc), ./demo check a спрашивает у самого стенда; руками смотреть уведомление в CRM AI не нужно. Прогрев и строки executeQuery(jpql= делает ./demo prepare, их проверяет ./demo check a. Затем «История» CRM AI: диалоги admin и, в приватном окне, alice; нет — ./demo prepare.",
+          "Агент и промпт A2. Агент для A2 (claude, codex, opencode или junie — какой выбран) запустить, убедиться, что он залогинен и видит JetBrains MCP, — не на проекторе: ключ Context7 по README передаётся аргументом команды регистрации MCP и хранится в конфиге агента, поэтому список MCP-серверов и конфиг агента на экран не выводим. Промпт A2 есть только в demo/PROMPT.md ветки demo/agent-task — скопировать в буфер (действие с pbcopy) или держать открытым в отдельном окне. Worktree ~/IdeaProjects/jmix-crm-live и ветку demo/live-run с репетиции убрать заранее (./demo check a предупреждает о них; действие с worktree remove), иначе worktree add в A2 упадёт.",
+          "Studio и jmix-crm. jmix-crm всё время на main: стенд живёт в отдельном worktree jmix-crm-stand, поэтому checkout в A2 его не трогает, а Studio перед A1 не пересинхронизирует Gradle из-за смены версии Jmix. Studio открыта на ~/IdeaProjects/jmix-crm, индексация завершена; ./demo check a проверяет main, чистые tracked-файлы и ветку demo/agent-task. Если в git status только M src/main/bundles/dev.bundle — это след запуска приложения в dev-режиме: git checkout -- src/main/bundles/dev.bundle. Settings → Tools → MCP Server: Enable MCP Server — флажок; если уже отмечен, не кликать, иначе MCP выключится прямо перед A2. Jmix AI (tool window в Studio): открыть и задать один пробный вопрос; что нужно для входа в Jmix AI, проверить заранее.",
+          "Jmix CLI. В исходниках jmix-cli опции --version нет: jmix знает подкоманды new и update, флаги --no-update и -h/--help; jmix --help отвечается локально без проверки обновлений (./demo check проверяет jmix --no-update --help). Установленная сборка CLI (не в CI, без JMIX_CLI_NO_AUTO_UPDATE=1 и не чаще раза в 10 минут) перед другими командами проверяет новый релиз и может скачать и установить его — возможная, но не подтверждённая причина того, что jmix --version локально зависал; точную причину проверить заранее. Накануне осознанно выполнить jmix update; на сцене каждая команда jmix идёт с --no-update (флаг принимается и до, и после подкоманды) или в терминале выставлен JMIX_CLI_NO_AUTO_UPDATE=1.",
+          "Сеть и браузер. LLM-вызовы идут наружу: и агент Dynamic Model, и CRM AI — в OpenAI (api.openai.com); проверить Wi-Fi зала, держать hotspot. Скриншоты-fallback лежат в assets/ рядом с runbook: a3-*.png (строка «CLI command:», ответ Jmix AI), a4-*.png, a5-*.png, a6-*.png — их снимают на репетиции (полный список и способ — assets/README.md), наличие проверяет ./demo check a. Вкладки: стенд с входом admin / admin и runbook, zoom под проектор, в Studio крупный шрифт. gpt-5.4 иногда отвечает на тот же запрос по-разному, чаще в мелочах: подписи полей со строчной буквы («телефон» вместо «Телефон») — не ошибка, продолжать; странный по сути ответ — просто повторить; после перезагрузки страницы режим AI в настройках динамической модели не восстанавливается — выбрать его снова."
         ],
         actions: [
           {
             kind: "shell",
-            text: "java -version"
+            text: "cd ~/IdeaProjects/jmix-demo-runbook && ./demo setup"
           },
           {
             kind: "shell",
-            text: "javac -version"
+            text: "./demo up a"
+          },
+          {
+            kind: "studio",
+            text: "Или IDEA вместо ./demo up a: File → Open → ~/IdeaProjects/jmix-crm-stand → Run «Stand aura-light (OpenAI)»"
           },
           {
             kind: "shell",
-            text: "[ -n \"$OPENROUTER_API_KEY\" ] && echo \"OPENROUTER_API_KEY set (optional): agent on DeepSeek, STAND_PROVIDER=openai keeps gpt-5.4\" || echo \"OPENROUTER_API_KEY not set (optional): agent on OpenAI gpt-5.4\""
+            text: "./demo reset"
           },
           {
             kind: "shell",
-            text: "[ -n \"$SPRING_AI_OPENAI_APIKEY\" ] && echo \"SPRING_AI_OPENAI_APIKEY set\" || echo \"SPRING_AI_OPENAI_APIKEY MISSING\""
+            text: "./demo prepare"
           },
           {
             kind: "shell",
-            text: "[ -n \"$ANTHROPIC_API_KEY\" ] && echo \"ANTHROPIC_API_KEY set (optional)\" || echo \"ANTHROPIC_API_KEY not set (optional)\""
-          },
-          {
-            kind: "shell",
-            text: "cd ~/IdeaProjects/jmix-crm && git checkout demo/ai-app"
-          },
-          {
-            kind: "shell",
-            text: "mkdir -p \"$HOME/demo-jars\" && { [ -f \"$HOME/demo-jars/crm.jar\" ] || cp ~/IdeaProjects/jmix-crm/build/libs/crm.jar \"$HOME/demo-jars/crm.jar\"; }"
-          },
-          {
-            kind: "shell",
-            text: "ls -lh \"$HOME/demo-jars/crm.jar\""
-          },
-          {
-            kind: "shell",
-            text: "cd ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent && STAND_JAR=\"$HOME/demo-jars/crm.jar\" ./stands.sh start aura-light"
-          },
-          {
-            kind: "shell",
-            text: "cd ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent && ./stands.sh status aura-light"
-          },
-          {
-            kind: "shell",
-            text: "curl -s -o /dev/null -w '%{http_code}\\n' http://localhost:8091/b2b-crm/"
-          },
-          {
-            kind: "shell",
-            text: "tail -n 20 ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent/instances/aura-light/application.log"
+            text: "./demo check a"
           },
           {
             kind: "url",
@@ -96,55 +69,11 @@ globalThis.DEMOS = {
           },
           {
             kind: "studio",
-            text: "Стенд → CRM AI: красного уведомления о ключе нет → прогревочный вопрос — промпт из следующей строки"
-          },
-          {
-            kind: "studio",
-            text: "Сколько у нас клиентов?"
-          },
-          {
-            kind: "shell",
-            text: "grep -cF 'executeQuery(jpql=' ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent/instances/aura-light/application.log"
-          },
-          {
-            kind: "studio",
-            text: "CRM AI → История: диалоги admin с вопросами 1–4 из A4, записанные после последнего сброса; нет — задать их сейчас"
-          },
-          {
-            kind: "studio",
-            text: "Приватное окно → alice / alice → CRM AI → История: диалоги с вопросами 1–2; нет — задать их сейчас"
-          },
-          {
-            kind: "studio",
-            text: "Администрирование → Отчёты → Отчёты: «Выручка клиентов (AI JPQL)» и «Выручка клиентов (живая генерация)»; нет — «Импортировать» ~/IdeaProjects/jmix-crm/demo/reports/ai-jpql-reports.zip"
-          },
-          {
-            kind: "shell",
-            text: "cd ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent && STAND_JAR=\"$HOME/demo-jars/crm.jar\" ./stands.sh start aura-dark"
-          },
-          {
-            kind: "shell",
-            text: "cd ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent && ./stands.sh status aura-dark"
-          },
-          {
-            kind: "url",
-            text: "http://localhost:8092/b2b-crm/"
-          },
-          {
-            kind: "studio",
-            text: "aura-dark: admin / admin → Каталог: «Демо-клиенты», «Демо-сделки», сделка «Первая поставка»; нет — пройти сценарий A6 здесь, не на aura-light"
+            text: "Стенд → CRM AI → История: диалоги admin с вопросами 1–4 из A4; приватное окно → alice / alice → История: вопросы 1–2; нет — ./demo prepare"
           },
           {
             kind: "git",
-            text: "git -C ~/IdeaProjects/jmix-crm checkout main"
-          },
-          {
-            kind: "git",
-            text: "git -C ~/IdeaProjects/jmix-crm status --short --untracked-files=no"
-          },
-          {
-            kind: "git",
-            text: "git -C ~/IdeaProjects/jmix-crm branch --list demo/agent-task"
+            text: "git -C ~/IdeaProjects/jmix-crm worktree remove --force ~/IdeaProjects/jmix-crm-live; git -C ~/IdeaProjects/jmix-crm branch -D demo/live-run"
           },
           {
             kind: "shell",
@@ -168,31 +97,11 @@ globalThis.DEMOS = {
           },
           {
             kind: "shell",
-            text: "command -v jmix"
-          },
-          {
-            kind: "shell",
-            text: "jmix --help"
-          },
-          {
-            kind: "shell",
             text: "mkdir -p /tmp/jmix-demo && jmix --no-update new crm-cli --non-interactive --template application --locales en,ru --path /tmp/jmix-demo/crm-cli-ready"
           },
           {
             kind: "shell",
             text: "rm -rf /tmp/jmix-demo/crm-cli"
-          },
-          {
-            kind: "shell",
-            text: "ls -a /tmp/jmix-demo"
-          },
-          {
-            kind: "shell",
-            text: "ls ~/.jmix"
-          },
-          {
-            kind: "shell",
-            text: "ls ~/IdeaProjects/jmix-demo-runbook/assets"
           }
         ]
       },
@@ -264,10 +173,6 @@ globalThis.DEMOS = {
             text: "Jmix tool window → Settings → AI Agents Toolkit... → показать Step 1 и Command to run → Cancel (Run не нажимать)"
           },
           {
-            kind: "git",
-            text: "git -C ~/IdeaProjects/jmix-crm checkout main"
-          },
-          {
             kind: "shell",
             text: "cd ~/IdeaProjects/jmix-crm && ls -d .skills .claude .agents .junie AGENTS.md CLAUDE.md"
           },
@@ -331,7 +236,7 @@ globalThis.DEMOS = {
           "Liquibase ↔ entity. Contract.java и 050-contract.xml рядом (Split Right) — nullable, length, unique, precision и scale должны совпасть (Constraint Audit в jmix-create-entity); unique у Contract не в @Column, а в @Table(indexes = @Index(name = \"IDX_CONTRACT_ON_NUMBER\", unique = true)) — против createIndex unique=\"true\" во втором changeSet. Если есть запас — Studio сравнивает модель с БД через Generate Liquibase Changelog и при совпадении пишет «The database is already synced with model.» Шаг рискованный, поэтому не по умолчанию: функция Studio по подписке, требует БД этой ветки (HSQLDB-файл .jmix/hsqldb/b2b-crm основной копии: на репетиции один раз запустить приложение на demo/agent-task, чтобы 050-contract.xml применился к этой базе), а само приложение этой копии в момент сравнения должно быть остановлено — файловая HSQLDB держит блокировку (проверить на репетиции); если не работает — сравнить changelog и entity глазами. Запуск приложения в dev-режиме пересобирает dev bundle Vaadin (npm install): после остановки выполнить git checkout -- src/main/bundles/dev.bundle и удалить package.json, package-lock.json, tsconfig.json, types.d.ts, vite.config.ts и .vaadin-node-tasks.lock, если они появились, иначе git status --short --untracked-files=no в pre-flight не пуст.",
           "Security by default: модель ролей аддитивная, запретов нет — нет политики, нет доступа. Роль без EntityPolicy не падает с ошибкой, а не видит данные: DataManager отменяет загрузку и возвращает пустой список (DataStoreCrudListener), без ViewPolicy и MenuPolicy экрана нет в меню и он не открывается. Открыть тест агента: метод с пользователем только с UiMinimalRole ожидает пустой список. Bean Validation: @PositiveOrZero на amount срабатывает и в карточке (StandardDetailView валидирует перед сохранением), и при DataManager.save — Jmix настраивает JPA с jakarta.persistence.validation.mode=AUTO, поэтому save бросает jakarta.validation.ConstraintViolationException из prePersist, а строка не сохраняется; в том же тесте — метод contractWithNegativeAmountIsNotSaved. Server-side Vaadin: экран — Java-контроллер и XML на сервере, данные грузятся через DataManager с правами пользователя; отдельного REST- или JS-слоя, где агент мог бы забыть проверку, нет. Честно сказать, чего фреймворк не ловит: забытая row-level политика означает «видно больше», а не «не видно», поэтому OnlyMyAccountsRole названа в промпте явно; attribute-политики применяют UI и сериализация, но не DataManager; несуществующий CSS-токен темы не ловит ни одна статическая проверка (skill jmix-style-ui).",
           "Подводные камни. Агент ушёл не туда или сеть тормозит — не ждать, сразу checkout готовой ветки. Checkout ругается на изменения — значит, live запускали не в worktree: git stash -u и повторить. Worktree ~/IdeaProjects/jmix-crm-live и ветку demo/live-run с репетиции убрать заранее, иначе worktree add упадёт; в крайнем случае взять другое имя. Worktree можно создать и до начала сессии — тогда команду worktree add на сцене пропустить. При первом запуске в новом каталоге Claude Code может спросить, доверять ли папке, — подтвердить; на репетиции проверить, повторяется ли вопрос для того же пути.",
-          "MCP и инспекции. В live-worktree MCP-инспекции не авторитетны: IDE открыта на основной копии, а jmix-ide-static-analysis сверяет git toplevel файла с корнем проекта IDE, — поэтому гейты показываем только на готовой ветке. Ветка demo/agent-task записана в копии, открытой в Studio с включённым MCP Server (Settings → Tools → MCP Server): в сообщении коммита — вердикт get_file_problems по каждому файлу и UI-тест ContractViewsUiTest для Contract.list и Contract.detail. Studio должна быть открыта на ~/IdeaProjects/jmix-crm с завершёнными Gradle sync и индексацией, иначе инспекции не подсветятся: пока Studio не загрузила модель проекта, в *-view.xml на xmlns висит «URI is not registered», а испорченный property не подсвечивается. Если стенд :8091 (ветка demo/ai-app) запущен из этой же рабочей копии, checkout в A2 уберёт его скрипты из рабочего дерева — стенды лучше держать в отдельном worktree, проверить на репетиции."
+          "MCP и инспекции. В live-worktree MCP-инспекции не авторитетны: IDE открыта на основной копии, а jmix-ide-static-analysis сверяет git toplevel файла с корнем проекта IDE, — поэтому гейты показываем только на готовой ветке. Ветка demo/agent-task записана в копии, открытой в Studio с включённым MCP Server (Settings → Tools → MCP Server): в сообщении коммита — вердикт get_file_problems по каждому файлу и UI-тест ContractViewsUiTest для Contract.list и Contract.detail. Studio должна быть открыта на ~/IdeaProjects/jmix-crm с завершёнными Gradle sync и индексацией, иначе инспекции не подсветятся: пока Studio не загрузила модель проекта, в *-view.xml на xmlns висит «URI is not registered», а испорченный property не подсвечивается. Стенд :8091 работает из отдельного worktree ~/IdeaProjects/jmix-crm-stand (ветка demo/ai-app), поэтому checkout в A2 его не трогает."
         ],
         actions: [
           {
@@ -512,8 +417,8 @@ globalThis.DEMOS = {
           "История диалогов с автоназваниями, каждый видит только свои диалоги"
         ],
         notes: [
-          "Состояние до блока. Стенд aura-light (ветка demo/ai-app от 50-dynmodel-ai-agent, Jmix 3.1.999-SNAPSHOT) запущен в pre-flight. CRM AI работает на модели Spring AI OpenAI: в application.properties ветки 50-dynmodel-ai-agent стоят spring.ai.model.chat=openai, spring.ai.openai.api-key=${SPRING_AI_OPENAI_APIKEY:<YOUR_API_KEY>} и модель gpt-5.4, а для названий диалогов crm.ai.small-model.model-id=gpt-5.4-nano. Тот же ключ без OPENROUTER_API_KEY питает и агента Dynamic Model (A6, тоже gpt-5.4, но через своё подключение). Наличие SPRING_AI_OPENAI_APIKEY проверяется в pre-flight, в той же сессии и до ./stands.sh start: проверка в терминале посреди демо ничего не говорит о процессе стенда. CRM AI проверяет ключ сам (CrmAiConfig.isAiIntegrationEnabled: пустой ключ или ключ с YOUR_API_KEY означает, что интеграция выключена). Без ключа при открытии CRM AI появится красное уведомление «Ключ OpenAI API не настроен…», поле ввода и подсказки будут заблокированы. Поэтому в pre-flight открыть CRM AI на стенде, убедиться, что уведомления нет, и задать прогревочный вопрос.",
-          "Где смотреть JPQL. В чате запроса не видно: системный промпт CRM запрещает показывать пользователю технические детали. Запрос видно в логе стенда: строки executeQuery(jpql=…) и Access conditions applied пишутся на уровне DEBUG. В 50-dynmodel-ai-agent стоит logging.level.io.jmix.aitools.dataload=INFO, в demo/ai-app оно переключено на DEBUG (application.properties). На прогревочном вопросе в pre-flight убедиться, что строка executeQuery(jpql= появляется в логе. После A2 рабочая копия ~/IdeaProjects/jmix-crm стоит на demo/agent-task (от main): там нет stands.sh (из отслеживаемых файлов в demo/ только PROMPT.md), поэтому команда stands.sh status упадёт. Статус проверяем curl по порту: любой код, кроме 000, значит, что стенд отвечает. Папка instances/aura-light не отслеживается git и переживает checkout, лог читается по прежнему пути. Если стенды вынесены в отдельный worktree, путь к логу брать от него. tail открыть в самом начале блока во втором терминале, который видит зал: tail -f показывает только новые строки.",
+          "Состояние до блока. Стенд aura-light (ветка demo/ai-app от 50-dynmodel-ai-agent, Jmix 3.1.999-SNAPSHOT) запущен в pre-flight. CRM AI работает на модели Spring AI OpenAI: в application.properties ветки 50-dynmodel-ai-agent стоят spring.ai.model.chat=openai, spring.ai.openai.api-key=${SPRING_AI_OPENAI_APIKEY:<YOUR_API_KEY>} и модель gpt-5.4, а для названий диалогов crm.ai.small-model.model-id=gpt-5.4-nano. Тот же ключ питает и агента Dynamic Model (A6, тоже gpt-5.4, но через своё подключение). Наличие SPRING_AI_OPENAI_APIKEY проверяется в pre-flight, в той же сессии и до ./stands.sh start: проверка в терминале посреди демо ничего не говорит о процессе стенда. CRM AI проверяет ключ сам (CrmAiConfig.isAiIntegrationEnabled: пустой ключ или ключ с YOUR_API_KEY означает, что интеграция выключена). Без ключа при открытии CRM AI появится красное уведомление «Ключ OpenAI API не настроен…», поле ввода и подсказки будут заблокированы. Поэтому в pre-flight открыть CRM AI на стенде, убедиться, что уведомления нет, и задать прогревочный вопрос.",
+          "Где смотреть JPQL. В чате запроса не видно: системный промпт CRM запрещает показывать пользователю технические детали. Запрос видно в логе стенда: строки executeQuery(jpql=…) и Access conditions applied пишутся на уровне DEBUG. В 50-dynmodel-ai-agent стоит logging.level.io.jmix.aitools.dataload=INFO, в demo/ai-app оно переключено на DEBUG (application.properties). На прогревочном вопросе в pre-flight убедиться, что строка executeQuery(jpql= появляется в логе. Стенд и его лог живут в отдельном worktree ~/IdeaProjects/jmix-crm-stand (demo/dynmodel-ai-agent/instances/aura-light/application.log), поэтому checkout demo/agent-task в jmix-crm после A2 их не трогает. Статус проверяем curl по порту: любой код, кроме 000, значит, что стенд отвечает (или ./demo status из папки runbook). tail открыть в самом начале блока во втором терминале, который видит зал: tail -f показывает только новые строки.",
           "Вход и вопрос 1, минуты 0–3. 0:00–1:00: терминал с tail, вход admin / admin, на экране входа выбрать Русский (ответ приходит на языке пользователя), главное меню → CRM AI. 1:00–3:00: вопрос 1 живьём: «Сколько у нас клиентов и кто топ-3 по сумме заказов?». Пока ждём, проговорить механику: AI Tools описывает модели доменную модель (aitls_getAvailableEntities, aitls_getDomainModelForEntities), модель пишет JPQL и вызывает aitls_executeQuery, запрос валидируется, проверяется доступ, и он выполняется через DataManager от имени пользователя. Системный промпт требует сначала искать отчёты (getAvailableReports), поэтому ответ — цепочка из нескольких вызовов и идёт не мгновенно. Показать строку executeQuery(jpql=…) в терминале.",
           "История и контекст, минуты 3–7. 3:00–4:30: «История» → диалоги, записанные после последнего сброса (их проверил pre-flight). Вопрос 2: «Сколько заказов в статусах «Новый» и «Принят» и на какую сумму?» (по мотивам примера из README про пресейл и ожидание оплаты). Вопрос 3: «Как часто покупает Connelly LLC? Покажи последние заказы со ссылками». Кликнуть ссылку на запись в ответе и обратить внимание на автоматически сгенерированные названия диалогов. 4:30–7:00: вопрос 4 живьём: «Добавить контекст → Добавить сущность CRM → Клиенты → Connelly LLC», затем «Подготовь Client 360 по этому клиенту за последний год». В CrmAiToolsConfig разрешены только Client 360 Report и Category Cashflow Risk Allocation Report. Показать «Загрузить файл(ы)» и панель «Контекст».",
           "Окно alice и границы, минуты 7–12. 7:00–10:00: alice (абзац «Безопасность»); ожидаемо в вопросе 2 заказов «Новый»/«Принят» у alice 13/19, у admin 25/40 — цифры только здесь: шаги в панели зеркала видит зал. 10:00–11:30: @ExcludeFromAi и @Secret (абзац «@Secret и @ExcludeFromAi»). 11:30–12:00: переход к A5. Опционально, если есть запас: вопросы про контакты и пользователей, бонус про Hackett.",
@@ -530,7 +435,7 @@ globalThis.DEMOS = {
           },
           {
             kind: "shell",
-            text: "tail -n 0 -f ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent/instances/aura-light/application.log | grep --line-buffered -E 'executeQuery|Access conditions|did not pass validation'"
+            text: "tail -n 0 -f ~/IdeaProjects/jmix-crm-stand/demo/dynmodel-ai-agent/instances/aura-light/application.log | grep --line-buffered -E 'executeQuery|Access conditions|did not pass validation'"
           },
           {
             kind: "url",
@@ -624,11 +529,11 @@ globalThis.DEMOS = {
         ],
         notes: [
           "Что это. Тип набора данных полосы «AI-generated JPQL», в русском UI «ИИ-сгенерированный JPQL» (DataSetType.LLM, код llm). Он есть только в Jmix 3.1 preview: в master он есть, у нас 3.1.999-SNAPSHOT из локального Maven, а в выпущенной 3.0.3 и в release_3_0 его нет. В build.gradle ветки 50-dynmodel-ai-agent (основа demo/ai-app) подключены jmix-reports-starter, jmix-reports-flowui-starter, jmix-reports-rest-starter и jmix-aitools-starter, поэтому тип предлагается без доработок. Промпт превращается в JPQL при создании отчёта через Text-to-Data Query из AI Tools. Модель та же, что у CRM AI: на стенде сконфигурирована одна модель Spring AI OpenAI (ключ SPRING_AI_OPENAI_APIKEY).",
-          "Подготовка. Отчёт с этим типом не может лежать в ветке как код: отчёты, объявленные в Java через @ReportDef (например Client 360 Report), этот тип использовать не могут, запрос хранится вместе с отчётом. Поэтому отчёт живёт только в базе стенда (HSQL в instances/aura-light), а сброс стенда его стирает. В demo/ai-app хранится экспорт отчётов: demo/reports/ai-jpql-reports.zip. Сохранённый запрос «(AI JPQL)» записан вручную в том формате, в котором его хранит генератор (ключа при подготовке ветки не было), и его оставляем: с gpt-5.4 «Сгенерировать запрос» обычно меняет колонки (на репетиции в 6 прогонах из 6 — orderCount и totalSum вместо ordersCount и ordersTotal, которые печатает шаблон), поэтому перегенерированный запрос не сохранять. Повторный импорт архива обновляет отчёты с теми же id («обновлено 2») и затирает то, что сохранено на стенде: если запрос всё же перегенерирован и сохранён, архив повторно не импортировать или экспортировать оба отчёта заново, заменить demo/reports/ai-jpql-reports.zip в demo/ai-app и прогнать AiJpqlReportsArchiveTest (так же написано в README ветки). Импорт входит в pre-flight A-pre и повторяется после каждого сброса стенда: Администрирование → Отчёты → Отчёты → кнопка «Импортировать» (иконка загрузки). Сохранённый запрос переносится экспортом и импортом. В архиве два отчёта. «Выручка клиентов (AI JPQL)» — готовый, с сохранённым запросом, для запуска и запасного варианта. «Выручка клиентов (живая генерация)» — копия, на которой жмут «Сгенерировать запрос». В обоих параметры fromDate и toDate типа «Дата» и шаблон с типом вывода «Таблица», чтобы результат открылся в окне приложения, а не скачался файлом. Проверено при подготовке ветки: в диалоге запуска параметры называются «Дата с» и «Дата по», результат — таблица в окне приложения.",
+          "Подготовка. Отчёт с этим типом не может лежать в ветке как код: отчёты, объявленные в Java через @ReportDef (например Client 360 Report), этот тип использовать не могут, запрос хранится вместе с отчётом. Поэтому отчёт живёт только в базе стенда (HSQL в instances/aura-light), а сброс стенда его стирает. В demo/ai-app хранится экспорт отчётов: demo/reports/ai-jpql-reports.zip, он же лежит в jar стенда. Стенд импортирует архив сам при старте, если какого-то из двух отчётов нет (в логе «AI JPQL demo reports imported»): после ./demo reset отчёты возвращаются без ручного импорта, а при обычном рестарте сохранённое на стенде не затирается. Сохранённый запрос «(AI JPQL)» записан вручную в том формате, в котором его хранит генератор (ключа при подготовке ветки не было), и его оставляем: с gpt-5.4 «Сгенерировать запрос» обычно меняет колонки (на репетиции в 6 прогонах из 6 — orderCount и totalSum вместо ordersCount и ordersTotal, которые печатает шаблон), поэтому перегенерированный запрос не сохранять. Если запрос всё же перегенерирован и сохранён, экспортировать оба отчёта, заменить demo/reports/ai-jpql-reports.zip в demo/ai-app и прогнать AiJpqlReportsArchiveTest (так же написано в README ветки): сохранённый запрос переносится экспортом и импортом. В архиве два отчёта. «Выручка клиентов (AI JPQL)» — готовый, с сохранённым запросом, для запуска и запасного варианта. «Выручка клиентов (живая генерация)» — копия, на которой жмут «Сгенерировать запрос». В обоих параметры fromDate и toDate типа «Дата» и шаблон с типом вывода «Таблица», чтобы результат открылся в окне приложения, а не скачался файлом. Проверено при подготовке ветки: в диалоге запуска параметры называются «Дата с» и «Дата по», результат — таблица в окне приложения.",
           "Порядок показа (только на копии). Администрирование → Отчёты → Отчёты → «Выручка клиентов (живая генерация)». На вкладке «Полосы отчёта» выбрать полосу и в «Тип набора данных» выбрать «ИИ-сгенерированный JPQL» (в копии он уже выбран). В поле «Промпт» вставить: «Для каждого клиента: название клиента, количество заказов и сумма заказов (total) с датой заказа от fromDate до toDate; сортировка по сумме по убыванию». Нажать «Сгенерировать запрос»: gpt-5.4 отвечает за 6–7 с. Появится JPQL в «Сгенерированный запрос», рядом «Колонки», ниже пояснение и предупреждения. :fromDate и :toDate — параметры отчёта: при запуске они подставляются как именованные параметры JPQL, текст не переписывается. Карандаш «Изменить» открывает JPQL и колонки, галочка «Готово» закрывает правку. Колонки идут по позициям и должны совпадать с select. Если черновик модели невалиден, AI Tools даёт ровно одну попытку исправления. Если промпт поменяли после генерации, появится бейдж «Промпт изменён после генерации запроса». Повторная генерация перезаписывает ручную правку и может переименовать колонки, которые печатает шаблон. С gpt-5.4 так и выходит: на копии колонки получаются orderCount и totalSum, а шаблон печатает ordersCount и ordersTotal; предупреждения под пояснением — про inner join (клиенты без заказов не попадут) и группировку по c.name. Поэтому копию закрыть без сохранения («Отмена» → «Не сохранять»), а готовый отчёт не трогать: перегенерация на нём добавила бы предупреждение «…которые шаблон больше не сможет вывести: ordersCount, ordersTotal».",
           "Запуск и права. Открыть «Выручка клиентов (AI JPQL)» и нажать «Запустить отчёт» под admin. Затем в приватном окне alice из A4: Администрирование → Отчёты → Запуск отчётов (роль Manager включает ReportsRunRole с этим пунктом меню). Если пункта на экране нет, открыть маршрут report/run по ссылке. Отчёт без назначенных ролей доступен всем. Модель на запуске не вызывается: сохранённый JPQL выполняется через DataManager с правами текущего пользователя. READ проверяется для каждой сущности запроса, row-level политики применяются ко всем сущностям графа, атрибут без права чтения приходит как null. То, что нельзя отфильтровать (predicate-политика, сущность только в подзапросе), отклоняется. Ожидаемо admin увидит 30 клиентов, alice — 13 своих. Контраст для зала: обычные наборы JPQL и SQL идут через EntityManager или DataSource и таких ограничений не применяют. Даты в демо-данных — смещения от дня загрузки, поэтому диапазон берём широкий.",
           "Доступность. Без AI Tools (или при jmix.aitools.enabled=false, или jmix.aitools.dataload.enabled=false) тип не предлагается, но уже созданные отчёты этого типа запускаются. С AI Tools, но без настроенной модели тип есть, а «Сгенерировать запрос» недоступна. На стенде модель OpenAI сконфигурирована всегда (по умолчанию ключ — заглушка <YOUR_API_KEY>), поэтому без SPRING_AI_OPENAI_APIKEY кнопка активна, но генерация падает с ошибкой провайдера. Таймаут генерации задаёт jmix.reports.client.llm-query-generation-timeout, по умолчанию 120 с. Тип работает и в cross-tab полосе как набор ячеек: значения осей приходят list-параметрами для IN. Ограничения: нет streaming, «топ-N» берётся из промпта, шаблон и колонки могут разойтись без предупреждения.",
-          "Запасной вариант. Если генерация зависла или нет сети, не ждите: закройте копию без сохранения, откройте «Выручка клиентов (AI JPQL)», покажите сохранённый запрос и запустите отчёт. Запуску модель не нужна, и это главный тезис блока. Оба отчёта в списке проверяет pre-flight; после сброса стенда архив импортировать заново. Не работает сам стенд — скриншоты assets/a5-*.png (последнее действие блока)."
+          "Запасной вариант. Если генерация зависла или нет сети, не ждите: закройте копию без сохранения, откройте «Выручка клиентов (AI JPQL)», покажите сохранённый запрос и запустите отчёт. Запуску модель не нужна, и это главный тезис блока. Оба отчёта стенд импортирует сам при старте, если их нет; ./demo check a видит импорт по логу. Не работает сам стенд — скриншоты assets/a5-*.png (последнее действие блока)."
         ],
         actions: [
           {
@@ -687,12 +592,12 @@ globalThis.DEMOS = {
         ],
         notes: [
           "Что говорим. Dynamic Model — аддон Jmix Premium: работающее приложение получает новые сущности и экраны без перевыпуска. Сам аддон есть и в BOM Jmix 3.0. Новое в Jmix 3.1, который ещё не выпущен (это preview), — AI-агент Dynamic Model AI Builder (jmix-framework/jmix#5779) и чат-компонент jmix-aichat. Стенд aura-light (ветка demo/ai-app, Jmix и Jmix Premium 3.1.999-SNAPSHOT), агент работает на OpenAI gpt-5.4 (api.openai.com, тот же ключ, что у CRM AI, но своё подключение crm.dynmodel.*). Пока агент планирует (план шага 1 — около 20–30 с) или готовит изменения, говорим главное для разработчиков: публикация — не инструмент модели, а действие в UI. Агент не может вызвать Apply: ArchUnit-тест ApplyBoundaryArchTest запрещает коду агента вызывать applyAndSave, а миграции перед публикацией показывает родной диалог Dynamic Model. Тот же принцип, что во всём демо: рамки задаёт фреймворк, а не обещание модели.",
-          "Накануне, не на сцене. Весь сценарий прогнать на втором стенде aura-dark (порт 8092, своя база; на Claude, если задан ANTHROPIC_API_KEY, иначе gpt-5.4) и оставить его запущенным как готовый результат; pre-flight проверяет, что он отвечает на :8092. Тогда aura-light остаётся свежим и сброс не нужен. Если сценарий всё же гоняли на aura-light, сбросить его до начала всего Demo A, а не между блоками. Из папки demo/dynmodel-ai-agent рабочей копии на demo/ai-app: ./stands.sh stop aura-light, дождаться, пока ./stands.sh status aura-light покажет stopped (stop только просит приложение завершиться), удалить папку instances/aura-light, затем ./stands.sh start aura-light. Сброс стирает всю базу стенда, поэтому после него проверить артефакты A4 и A5 (отчёт с AI JPQL, пользователь alice); созданное руками через UI создать заново. Останавливать только через stop: после kill -9 стенд зависнет на старте с «Waiting for changelog lock». Там же проверить раскладку: настройки динамической модели в режиме AI, разрешение проектора, выбранный zoom. Чат и «Рабочая область» должны стоять рядом; если экран настроек не шире 60rem, они встают друг под друга. Тогда свернуть главное меню приложения или уменьшить zoom этой вкладки; панель прячет кнопка «Свернуть рабочую область».",
+          "Накануне, не на сцене. Сценарий прогнать на репетиции, затем ./demo reset (свежая база с демо-данными CRM, отчёты A5 возвращаются сами) и ./demo prepare (диалоги A4). Сбрасывать до начала всего Demo A, а не между блоками. Запасной вариант A6 — скриншоты assets/a6-*.png: шаги 1, 3, 8, 13 и итог сценария (assets/README.md), второго стенда нет. Останавливать стенд только ./demo down или одним Stop в IDEA: после kill -9 он зависнет на старте с «Waiting for changelog lock». На репетиции проверить и раскладку: настройки динамической модели в режиме AI, разрешение проектора, выбранный zoom. Чат и «Рабочая область» должны стоять рядом; если экран настроек не шире 60rem, они встают друг под друга. Тогда свернуть главное меню приложения или уменьшить zoom этой вкладки; панель прячет кнопка «Свернуть рабочую область».",
           "Ход по шагам, 1–3. Нумерация — как в demo/dynmodel-ai-agent/scenarios/demo-scenario.md ветки; метка [8] — короткая версия. Промпты стоят в действиях отдельными строками, дословно из сценария: копировать строку целиком. Шаг 1: шкала над чатом на «План», в «Рабочей области» — «Проверьте предложенный план»; при наведении на поле видны подписи на всех языках; пока план ждёт, переключиться на «Визуальный» можно, но редактор там заблокирован: «Создать» и «Применить» неактивны. Шаг 2: план дополняется в том же чате, старый план по ссылке «План · …» открывается только для чтения. Шаг 3: после «Подтвердить план» шкала проходит «Подготовка» и «Проверка»; «Проверить визуально» показывает черновик, в меню приложения ещё ничего нет.",
           "Шаги 8, 9 и 13. Шаг 8: в «Визуальном» и «Коде» кнопка «Применить» стоит в шапке, а чат и шкала скрыты. Поэтому сначала вернуться в AI и нажать «Применить» внизу рабочей области: тогда видны список миграций, шкала до «Применения» и в чате «Изменения применены: …». Шаг 9: форма не даст сохранить клиента без названия, в сделке клиент показан названием. Шаг 13: агент объясняет, что не читает бизнес-данные, и отказывается менять тип опубликованного поля, объяснением или сообщением «Не удалось подготовить допустимый план» (gpt-5.4 на репетиции всегда отвечал объяснением, за 3–5 с); «Подтвердить план» не появляется. Резервные шаги 10–11: новый диалог расширяет модель; в окне «Шагов: N» «Создать сущность» идёт раньше «Добавить ссылку».",
           "Короткая версия, 8 минут (точка выхода №2): шаги 1, 3, 8, 9 и 13, то есть только действия с меткой [8]. Без шага 2 у сделки нет даты следующего контакта и «Срочно»: создать только «Север» и сделку «Первая поставка» с клиентом, суммой 12500,50 и причиной отказа. Перед шагом 13 вернуться в настройки динамической модели и снова выбрать AI: после ухода со страницы чат начинает новый диалог, ластик неактивен, чистить нечего. Полная версия, 15 минут: шаги 1, 2, 3, 8, 9, 13 — пять ходов модели и одно «Применить». Замер 9 октября на gpt-5.4 (скрипт, без рассказа): полная версия — 88–93 с действий, из них ожидание модели 51–55 с; короткая — 61 с, модель 28 с; резервные шаги 10–11 — ещё 27–35 с. По ходам: план шага 1 — 18–28 с, дополнение шага 2 — 22–26 с, новый диалог шага 10 — 17–25 с, «Подтвердить план» и «Применить» — 1–5 с, каждый ответ шага 13 — 3–5 с. Почти всё время блока — рассказ; ход дольше минуты — уже сбой, хотя лимиты стенда допускают до 4 минут на ход и до 24 шагов плана. Данные шага 9: «Север» (телефон +79000000001) и «Маяк»; сделка «Первая поставка» с клиентом «Север», датой 01.12.2026, суммой 12500,50, «Срочно» и причиной отказа «Не согласовали бюджет».",
           "Резервные шаги, если опережаете. Только в полной версии. Шаги 4–7 — до «Применить»: шаг 4 переставляет поле, которое добавил шаг 2; шаги 5–7 — ручной city в «Визуальном», правка подписи в «Коде» и вопрос агенту (он видит неопубликованные ручные правки, плана нет); тогда в шаге 9 у «Севера» указать город «Казань». Шаги 10–11 — после шага 9: новый диалог расширяет модель, второе «Применить». Шаг 12 — после шага 11. Каждый резервный шаг — ещё один ход модели или ручная работа на минуту-две.",
-          "Подводные камни (README_ru, «Что стоит знать заранее»). Агент сам ничего не публикует, публикует человек кнопкой «Применить». Позицию поля просить отдельным запросом: внутри большого запроса на создание план иногда не удаётся подготовить. В длинном диалоге модель может начать путаться: перед новой задачей очистить диалог кнопкой с ластиком; неопубликованные изменения останутся в редакторе, если не отметить их отмену в подтверждении. gpt-5.4 иногда отвечает по-разному на один и тот же запрос, чаще в мелочах: подписи полей бывают со строчной буквы («название компании», «телефон», «сумма») — это не ошибка, продолжать; если ответ странный по сути, повторить запрос; на «Не удалось подготовить допустимый план» (на репетиции с gpt-5.4 ни разу) — повторить или разбить запрос. После обновления страницы режим AI не восстанавливается из адреса, в том числе при входе по адресу dynmod-settings: снова выбрать AI переключателем. Лимиты агента подняты в application.properties стенда: jmix.dynmodel.ai.max-plan-steps=24 и jmix.dynmodel.ai.turn-timeout=4m. Когда уходить на запасной вариант: после второго неудачного повтора одного шага или при отставании больше чем на 2 минуты. Тогда открыть готовый результат на aura-dark или скриншоты шагов 1, 3, 8, 13 и итога сценария из assets/ (последнее действие блока). Без интернета или без SPRING_AI_OPENAI_APIKEY агент на любой запрос отвечает ошибкой вызова модели, сразу на запасной вариант.",
+          "Подводные камни (README_ru, «Что стоит знать заранее»). Агент сам ничего не публикует, публикует человек кнопкой «Применить». Позицию поля просить отдельным запросом: внутри большого запроса на создание план иногда не удаётся подготовить. В длинном диалоге модель может начать путаться: перед новой задачей очистить диалог кнопкой с ластиком; неопубликованные изменения останутся в редакторе, если не отметить их отмену в подтверждении. gpt-5.4 иногда отвечает по-разному на один и тот же запрос, чаще в мелочах: подписи полей бывают со строчной буквы («название компании», «телефон», «сумма») — это не ошибка, продолжать; если ответ странный по сути, повторить запрос; на «Не удалось подготовить допустимый план» (на репетиции с gpt-5.4 ни разу) — повторить или разбить запрос. После обновления страницы режим AI не восстанавливается из адреса, в том числе при входе по адресу dynmod-settings: снова выбрать AI переключателем. Лимиты агента подняты в application.properties стенда: jmix.dynmodel.ai.max-plan-steps=24 и jmix.dynmodel.ai.turn-timeout=4m. Когда уходить на запасной вариант: после второго неудачного повтора одного шага или при отставании больше чем на 2 минуты. Тогда открыть скриншоты шагов 1, 3, 8, 13 и итога сценария из assets/ (последнее действие блока). Без интернета или без SPRING_AI_OPENAI_APIKEY агент на любой запрос отвечает ошибкой вызова модели, сразу на запасной вариант.",
           "Если спросят, как это устроено. В приложении стартеры io.jmix.dynmodel:jmix-dynmodel-ai-starter и jmix-dynmodel-ai-flowui-starter, changelog агента /io/jmix/dynmodelai/liquibase/changelog.xml; чат — компонент jmix-aichat, агент построен на Embabel. У агента своё подключение к модели (DynamicModelAgentConfiguration, свойства crm.dynmodel.*), независимое от CRM AI; настройки агента — jmix.dynmodel.ai.*, на стенде plan-approval-mode=MANUAL. Режим AI предлагается только пользователю с правом Apply динамической модели; собственных проверок прав у агента в первой версии нет. Диалоги и запуски пишутся в сущности dmagent_*, отдельного экрана нет: смотреть в Инспекторе сущностей /b2b-crm/datatl/entity-inspector. Ограничения 3.1: агент не расширяет впервые существующую сущность приложения, не создаёт для неё экраны и меню, не создаёт поля-перечисления и вычисляемые поля, поэтому в промпте «независимо от существующей CRM»."
         ],
         actions: [
@@ -818,11 +723,7 @@ globalThis.DEMOS = {
           },
           {
             kind: "studio",
-            text: "Запасной вариант: готовый результат сценария на стенде aura-dark (прогнан накануне, проверен в pre-flight), вход admin / admin; нет стенда — скриншоты шагов 1, 3, 8, 13 и итога"
-          },
-          {
-            kind: "url",
-            text: "http://localhost:8092/b2b-crm/"
+            text: "Если агент недоступен или отстаём больше чем на 2 минуты: скриншоты шагов 1, 3, 8, 13 и итога сценария"
           },
           {
             kind: "shell",
@@ -845,7 +746,7 @@ globalThis.DEMOS = {
         notes: [
           "Что из показанного где. Выпущено: ветка main jmix-crm живёт на Jmix 3.0.3 и уже подключает io.jmix.aitools:jmix-aitools-starter, то есть CRM AI из блока A4 с data-load (генерация и проверка JPQL под правами пользователя) работает на выпущенной версии. Agent Toolkit и Jmix CLI — не часть Jmix 3.0, а отдельные репозитории со своим циклом: toolkit для Jmix 3 берётся с ветки v3 и ставится из Studio 3.0+; CLI пока не дошёл до 1.0 (теги v0.x), ставится своим installer и несёт свою Java. Jmix AI — панель релизной Studio для Jmix 3.0. Preview, Jmix 3.1 (ещё не выпущен, master и 3.1.999-SNAPSHOT): тип набора данных полосы «AI-generated JPQL» в отчётах (DataSetType.LLM, в release_3_0 его нет), аннотация @ExcludeFromAi в AI Tools, AI-агент Dynamic Model (jmix-dynmodel-ai) и чат-компонент jmix-aichat. Сам Dynamic Model как аддон Premium есть и в 3.0, новое в 3.1 именно агент.",
           "Как начать завтра. Первое — toolkit в свой проект: в Studio окно Jmix → Settings → AI Agents Toolkit, мастер проведёт по шагам (skills, guidelines-блок, MCP-серверы, Playwright). Без Studio — install.sh из README репозитория; на сцене не запускать, только показать ссылку. Проекты, созданные Jmix CLI, получают toolkit сразу (отключается флагом --no-agents-toolkit). Второе — JetBrains MCP: в IntelliJ Settings → Tools → MCP Server → Enable MCP Server, проект держать открытым в IDE. Оба диалога уже показаны в A1, в IDE не возвращаемся. Третье — правила гигиены: агент работает в отдельной ветке, результат проверяется запуском приложения и инспекциями Studio, prod-ключи агенту не даём. Четвёртое — онлайн-демо B2B CRM, чтобы посмотреть само приложение; CRM AI — локально на jmix-crm main с ключом SPRING_AI_OPENAI_APIKEY, пункт меню CRM AI. Включён ли CRM AI в онлайн-демо, проверить перед встречей; если нет, так и сказать.",
-          "Q&A: собирать вопросы, записывать их; на то, что требует проверки, ответить после встречи. Частые вопросы и короткие ответы. Когда 3.1 — дату не называть, следить за анонсами на jmix.io. Лицензии — Dynamic Model и AI Chat входят в Jmix Premium, AI Tools и Reports лежат в открытом репозитории фреймворка jmix-framework/jmix. Куда уходят данные — CRM AI выполняет запросы с правами текущего пользователя, @Secret-атрибуты закрыты, в 3.1 добавляется @ExcludeFromAi; агент Dynamic Model работает с описанием модели и бизнес-данные не читает (это было видно на шаге с отказом). Какая модель — CRM подключает Spring AI через OpenAI-стартер (gpt-5.4); агент Dynamic Model на стенде тоже работает на OpenAI gpt-5.4, но через своё подключение (crm.dynmodel.*), и его можно переключить на OpenRouter или на Claude (стенд aura-dark с ANTHROPIC_API_KEY).",
+          "Q&A: собирать вопросы, записывать их; на то, что требует проверки, ответить после встречи. Частые вопросы и короткие ответы. Когда 3.1 — дату не называть, следить за анонсами на jmix.io. Лицензии — Dynamic Model и AI Chat входят в Jmix Premium, AI Tools и Reports лежат в открытом репозитории фреймворка jmix-framework/jmix. Куда уходят данные — CRM AI выполняет запросы с правами текущего пользователя, @Secret-атрибуты закрыты, в 3.1 добавляется @ExcludeFromAi; агент Dynamic Model работает с описанием модели и бизнес-данные не читает (это было видно на шаге с отказом). Какая модель — CRM подключает Spring AI через OpenAI-стартер (gpt-5.4); агент Dynamic Model на стенде тоже работает на OpenAI gpt-5.4, но через своё подключение (crm.dynmodel.*), и его можно переключить на OpenRouter или Anthropic (свойство crm.dynmodel.provider).",
           "Если время вышло: оставить на экране слайд со ссылками, вопросы собрать в чат или после встречи. Ссылки на репозитории и онлайн-демо — в действиях ниже, открывать их из runbook, а не набирать вручную. Материалы встречи — этот runbook с заметками, шагами и ссылками обоих демо: github.com/Fedoseew/jmix-demo-runbook, туда же ведёт QR на заставке."
         ],
         actions: [
@@ -890,51 +791,41 @@ globalThis.DEMOS = {
         minutes: 0,
         pre: true,
         slide: [
-          "JDK 21 в PATH: java -version",
-          "Docker запущен, PostgreSQL с дампом CRM: docker compose -f db/docker-compose.yml up -d",
-          "Таблицы CRM видны в psql, список не пустой",
-          "crm-from-db на ветке b/01-empty, рабочее дерево чистое",
+          "./demo up b: PostgreSQL с дампом CRM на :5434 и стенд для B4 (или run-конфигурации IDEA)",
+          "После репетиции B: ./demo reset b, запуск «crm-from-db app», пользователь sales / sales",
+          "./demo check b без FAIL: Docker, 8 таблиц CRM, нет rating, sales без ролей, b/01-empty",
           "Studio открыт на crm-from-db, Gradle sync и индексация завершены",
           "Мастер Jmix Project открыт онлайн в этой сессии IDE: версии Jmix загрузились",
           "Main Data Store (PostgreSQL) → Test Connection успешен, подписка Studio активна",
-          "Приложение b/01-empty запущено против дампа, вход admin / admin проверен",
-          "Jmix CLI отвечает: jmix --help, шаблоны уже в кэше ~/.jmix",
-          "Для B4: стенд aura-light из ~/demo-jars/crm.jar отвечает на :8091, ключ OpenAI задан",
-          "Для B4: интернет или hotspot проверен",
+          "Приложение запущено из IDEA («crm-from-db app», :8080), вход admin / admin проверен",
+          "Jmix CLI отвечает, шаблоны уже в кэше ~/.jmix",
+          "Для B4: стенд :8091 отвечает, ключ OpenAI задан, интернет или hotspot проверен",
           "Браузер: вкладки runbook, localhost:8080 и стенда, zoom под проектор"
         ],
         notes: [
-          "Пройти чек-лист за 30–40 минут до начала. Все команды демо B выполняются из ~/IdeaProjects/crm-from-db: после первого cd терминал остаётся в этой папке. CLI в B1 запускается в подоболочке в отдельной пустой папке, поэтому текущий каталог терминала не меняется. На глазах у зала ничего не скачиваем и не собираем впервые: Gradle-зависимости, фронтенд Vaadin и шаблоны Jmix CLI прогреваются полным прогоном демо накануне.",
-          "База: docker compose -f db/docker-compose.yml up -d поднимает PostgreSQL со схемой и данными CRM из db/crm.sql. Сервис db на образе postgres:17.11, порт 5434 (5432 и 5433 заняты другими проектами), база и пользователь crm / crm; команда проверки берёт их из переменных окружения контейнера. Дамп грузится только при первом старте, в пустой том; там же создаётся база crm_test для ./gradlew test. Флаг -P pager=off отключает пейджер psql, иначе длинный список таблиц откроется в less (выход по q). В выводе должны быть 8 таблиц CRM: client, contact, category, category_item (продукты), order_, order_item, invoice и user_ (пользователи CRM); после первого запуска приложения рядом появляются его собственные таблицы (crm_user, sec_* и другие). Если таблиц нет, демо B2 не начинать: fallback — ветка b/02-model и рассказ по коду.",
+          "Пройти чек-лист за 30–40 минут до начала. Инфраструктуру поднимает ./demo из папки runbook: ./demo up b, а ./demo check b в конце, когда приложение запущено; руками остаются Studio, приложение и браузер. Все команды демо B выполняются из ~/IdeaProjects/crm-from-db: после cd терминал остаётся в этой папке. CLI в B1 запускается в подоболочке в отдельной пустой папке, поэтому текущий каталог терминала не меняется. На глазах у зала ничего не скачиваем и не собираем впервые: Gradle-зависимости, фронтенд Vaadin и шаблоны Jmix CLI прогреваются полным прогоном демо накануне.",
+          "База: ./demo up b (или в IDEA, проект crm-from-db, run-конфигурация «crm-from-db database» — Docker Compose с тем же db/docker-compose.yml, сервис db) поднимает PostgreSQL со схемой и данными CRM из db/crm.sql и ждёт, пока ответят таблицы. Сервис db на образе postgres:17.11, порт 5434 (5432 и 5433 заняты другими проектами), база и пользователь crm / crm. Дамп грузится только при первом старте, в пустой том; там же создаётся база crm_test для ./gradlew test. ./demo check b считает 8 таблиц CRM: client, contact, category, category_item (продукты), order_, order_item, invoice и user_ (пользователи CRM); после первого запуска приложения рядом появляются его собственные таблицы (crm_user, sec_* и другие). Если таблиц нет, демо B2 не начинать: fallback — ветка b/02-model и рассказ по коду. ./demo down останавливает базу, данные остаются в томе. После каждой репетиции B — ./demo reset b (спрашивает подтверждение, -y — без вопроса; приложение на :8080 сначала остановить): удаляет том, заново грузит дамп, ждёт таблицы и переключает чистый crm-from-db на b/01-empty. Затем один раз запустить «crm-from-db app» — оно создаёт свои таблицы — и создать пользователя без ролей: Users → Create, Username sales, пароль sales (нужен в B3). ./demo check b проверяет и это: колонки client.rating нет (после b/04-role она есть, и diff в B3 окажется пустым), пользователь sales есть и роли ему не назначены. В psql-проверке B3 флаг -P pager=off отключает пейджер, иначе длинный вывод откроется в less (выход по q).",
           "Обязательное условие: приложение b/01-empty стартует против дампа без ошибок Liquibase — проверено накануне и повторено здесь. Если старт падает, на месте не чинить: структуру проекта в B1 показываем по коду, дальше идём по веткам и скриншотам.",
-          "Studio: открыть crm-from-db, дождаться Gradle sync и индексации. В Jmix tool window под узлом модуля crm-from-db есть раздел Data Stores → Main Data Store, двойной клик открывает свойства хранилища, там Test Connection — на b/01-empty это уже PostgreSQL с дампом. Мастер нового проекта Studio загружает список версий Jmix из репозитория (Loading Jmix Versions) и держит его только в памяти IDE, не дольше суток: при наличии сети в этой же сессии IDE открыть File → New → Project → Jmix Project, дождаться списка версий, дойти до выбора шаблона и нажать Cancel. Перезапуск IDE прогрев сбрасывает. Затем запустить приложение run-конфигурацией «Crm-from-db Jmix Application» (Studio строит имя как «<Имя модуля с заглавной буквы> Jmix Application»), войти admin / admin и оставить приложение работать: в B1 показываем его, а не стартуем вживую. Проверить подписку: без неё премиум-функции Studio (визуальные дизайнеры, генерация Liquibase changelog) работают только в малых проектах — до 10 сущностей и ролей; новым пользователям даётся trial Sprint на 28 дней.",
-          "Jmix CLI: проверяем jmix --help — этот запуск обходится без проверки обновлений. Обычный запуск установленного CLI не чаще раза в 10 минут проверяет новый релиз и, если он вышел, скачивает его и перезапускается на новой версии — на сцене это выглядит как пауза и смена версии. Поэтому в зале только jmix --no-update (или export JMIX_CLI_NO_AUTO_UPDATE=1 в этом терминале). Шаблоны CLI кэширует в ~/.jmix/templates/, поэтому накануне запустить мастер хотя бы раз онлайн.",
-          "Опционально для B4: стенд из jmix-crm, ветка demo/ai-app, скрипт demo/dynmodel-ai-agent/stands.sh start aura-light. Jar — тот же, что в демо A: собран заранее на demo/ai-app (SNAPSHOT на месте не собирать) и скопирован в ~/demo-jars/crm.jar; main и demo/agent-task пишут тот же build/libs/crm.jar, и без копии сборка для демо A незаметно подменит стенд приложением без dynmodel и aichat. Стартуем всегда с STAND_JAR=\"$HOME/demo-jars/crm.jar\"; если файла нет, stands.sh пишет «skipped, missing …» и стенд не стартует, поэтому после старта проверяем status и curl, а не только лог. Ключ: SPRING_AI_OPENAI_APIKEY питает CRM AI-ассистента (тизер B4) и агента Dynamic Model (gpt-5.4); экспортировать в той же оболочке до stands.sh start, проверять только на наличие, значения на экран не выводить. OPENROUTER_API_KEY — опция, MISSING для него ожидаем. Если status не running или curl печатает 000 — смотреть console.log стенда. Адрес http://localhost:8091/b2b-crm/, вход admin / admin. Нет интернета — B4 пропускаем (точка выхода) или показываем скриншоты assets/b4-*.png."
+          "Studio: открыть crm-from-db, дождаться Gradle sync и индексации. В Jmix tool window под узлом модуля crm-from-db есть раздел Data Stores → Main Data Store, двойной клик открывает свойства хранилища, там Test Connection — на b/01-empty это уже PostgreSQL с дампом. Мастер нового проекта Studio загружает список версий Jmix из репозитория (Loading Jmix Versions) и держит его только в памяти IDE, не дольше суток: при наличии сети в этой же сессии IDE открыть File → New → Project → Jmix Project, дождаться списка версий, дойти до выбора шаблона и нажать Cancel. Перезапуск IDE прогрев сбрасывает. Затем запустить приложение run-конфигурацией «crm-from-db app» (лежит в репозитории, .run/crm-from-db-app.run.xml: Spring Boot, порт 8080), войти admin / admin и оставить приложение работать: в B1 показываем его, а не стартуем вживую. Проверить подписку: без неё премиум-функции Studio (визуальные дизайнеры, генерация Liquibase changelog) работают только в малых проектах — до 10 сущностей и ролей; новым пользователям даётся trial Sprint на 28 дней.",
+          "Jmix CLI: ./demo check b проверяет jmix --no-update --help — этот запуск обходится без проверки обновлений. Обычный запуск установленного CLI не чаще раза в 10 минут проверяет новый релиз и, если он вышел, скачивает его и перезапускается на новой версии — на сцене это выглядит как пауза и смена версии. Поэтому в зале только jmix --no-update (или export JMIX_CLI_NO_AUTO_UPDATE=1 в этом терминале). Шаблоны CLI кэширует в ~/.jmix/templates/, поэтому накануне запустить мастер хотя бы раз онлайн.",
+          "Опционально для B4: стенд aura-light из демо A. ./demo up b поднимает его вместе с базой (или run-конфигурация «Stand aura-light (OpenAI)» в проекте jmix-crm-stand); jar собирает ./demo setup накануне, SNAPSHOT на месте не собирать. Ключ SPRING_AI_OPENAI_APIKEY питает CRM AI-ассистента (тизер B4) и агента Dynamic Model (gpt-5.4): экспортировать до ./demo up b, проверять только на наличие (./demo check b), значения на экран не выводить. Если стенд не ответил — ./demo logs. Адрес http://localhost:8091/b2b-crm/, вход admin / admin. Нет интернета — B4 пропускаем (точка выхода) или показываем скриншоты assets/b4-*.png."
         ],
         actions: [
           {
             kind: "shell",
-            text: "java -version"
+            text: "cd ~/IdeaProjects/jmix-demo-runbook && ./demo up b"
+          },
+          {
+            kind: "studio",
+            text: "Или IDEA: проект crm-from-db → Run «crm-from-db database»; стенд B4 — Run «Stand aura-light (OpenAI)» в проекте jmix-crm-stand"
           },
           {
             kind: "shell",
-            text: "docker info --format '{{.ServerVersion}}'"
+            text: "./demo reset b"
           },
           {
             kind: "shell",
-            text: "cd ~/IdeaProjects/crm-from-db && docker compose -f db/docker-compose.yml up -d"
-          },
-          {
-            kind: "shell",
-            text: "docker compose -f db/docker-compose.yml exec db sh -c 'psql -P pager=off -U \"${POSTGRES_USER:-postgres}\" -d \"${POSTGRES_DB:-${POSTGRES_USER:-postgres}}\" -c \"\\dt\"'"
-          },
-          {
-            kind: "git",
-            text: "git checkout b/01-empty"
-          },
-          {
-            kind: "git",
-            text: "git status --short"
+            text: "cd ~/IdeaProjects/crm-from-db"
           },
           {
             kind: "studio",
@@ -950,55 +841,23 @@ globalThis.DEMOS = {
           },
           {
             kind: "studio",
-            text: "Run → Run 'Crm-from-db Jmix Application'"
+            text: "Run → Run 'crm-from-db app'"
           },
           {
             kind: "url",
             text: "http://localhost:8080"
           },
           {
-            kind: "shell",
-            text: "jmix --help"
+            kind: "studio",
+            text: "После ./demo reset b: admin / admin → Application → Users → Create → Username sales, пароль sales, без ролей → OK"
           },
           {
             kind: "shell",
-            text: "[ -n \"$OPENROUTER_API_KEY\" ] && echo \"OPENROUTER_API_KEY set (optional): agent on DeepSeek, STAND_PROVIDER=openai keeps gpt-5.4\" || echo \"OPENROUTER_API_KEY not set (optional): agent on OpenAI gpt-5.4\""
-          },
-          {
-            kind: "shell",
-            text: "[ -n \"$SPRING_AI_OPENAI_APIKEY\" ] && echo \"SPRING_AI_OPENAI_APIKEY set\" || echo \"SPRING_AI_OPENAI_APIKEY MISSING\""
-          },
-          {
-            kind: "shell",
-            text: "(cd ~/IdeaProjects/jmix-crm && git checkout demo/ai-app && mkdir -p \"$HOME/demo-jars\" && { [ -f \"$HOME/demo-jars/crm.jar\" ] || cp build/libs/crm.jar \"$HOME/demo-jars/crm.jar\"; })"
-          },
-          {
-            kind: "shell",
-            text: "ls -lh \"$HOME/demo-jars/crm.jar\""
-          },
-          {
-            kind: "shell",
-            text: "STAND_JAR=\"$HOME/demo-jars/crm.jar\" ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent/stands.sh start aura-light"
-          },
-          {
-            kind: "shell",
-            text: "~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent/stands.sh status aura-light"
-          },
-          {
-            kind: "shell",
-            text: "curl -s -o /dev/null -w '%{http_code}\\n' http://localhost:8091/b2b-crm/"
-          },
-          {
-            kind: "shell",
-            text: "tail -n 20 ~/IdeaProjects/jmix-crm/demo/dynmodel-ai-agent/instances/aura-light/console.log"
+            text: "~/IdeaProjects/jmix-demo-runbook/demo check b"
           },
           {
             kind: "url",
             text: "http://localhost:8091/b2b-crm/"
-          },
-          {
-            kind: "shell",
-            text: "ls ~/IdeaProjects/jmix-demo-runbook/assets"
           }
         ]
       },
@@ -1209,7 +1068,7 @@ globalThis.DEMOS = {
           "Менеджер видит клиентов, но Create и Remove недоступны, Edit стал Read"
         ],
         notes: [
-          "Подготовка до демо, не на сцене. После каждой репетиции вернуть БД к состоянию дампа: docker compose -f db/docker-compose.yml down -v, затем up -d (db/crm.sql загружается только в пустой том). Затем один раз запустить b/01-empty и в приложении создать пользователя без ролей: Users → Create, Username sales, пароль sales. Без сброса diff окажется пустым, окно Execute and proceed не появится, а Add в Role assignments наткнётся на уже назначенные роли. Первая команда блока выводит таблицу CLIENT: колонки rating в ней быть не должно — это же проверка для pre-flight.",
+          "Подготовка до демо, не на сцене. После каждой репетиции вернуть БД к состоянию дампа: ./demo reset b из папки runbook (docker compose down -v и up: db/crm.sql загружается только в пустой том; чистый crm-from-db переключается на b/01-empty). Затем один раз запустить b/01-empty и в приложении создать пользователя без ролей: Users → Create, Username sales, пароль sales. Без сброса diff окажется пустым, окно Execute and proceed не появится, а Add в Role assignments наткнётся на уже назначенные роли. Первая команда блока выводит таблицу CLIENT: колонки rating в ней быть не должно — это и пользователя sales без ролей проверяет ./demo check b.",
           "Продолжаем на b/03-views. Client получен из существующей таблицы и помечен DISABLED, поэтому Studio не пишет для него Liquibase. Чтобы развивать таблицу из Jmix: Client в entity designer → ссылка DDL Generation Settings → DB script generation mode: CREATE_ONLY. Режимы: CREATE_AND_DROP — полная генерация, включая удаление колонок; CREATE_ONLY — создаём недостающее, но ничего не удаляем; DISABLED — скрипты не генерируются. Для legacy-таблиц CREATE_ONLY — безопасный выбор. Attributes → + → New Attribute: rating, Integer, без Mandatory (в таблице уже есть строки). Затем Add Attributes to Views → rating для list и detail → OK; в дизайнере detail view в панели Jmix UI видно новое поле внутри formLayout.",
           "Liquibase: Main Data Store → правый клик → Generate Liquibase Changelog. Studio сравнивает модель с базой; ожидаем addColumn RATING для CLIENT. Покажите окно и закройте его — готовый changelog лежит в b/04-role. Если в diff попало лишнее (другие таблицы, CRM_USER, служебные), причиной может быть сущность без DISABLED, расхождение User с CRM_USER или неприменённые changelog'и проекта. На репетиции добиться diff только с RATING. Лицензия: генерация changelog и дизайнеры — premium-функции Studio, бесплатно они работают в проектах до 10 сущностей и до 10 ролей. В crm-from-db 9 сущностей и 2–3 роли, это в пределах лимита, но статус всё равно проверить заранее: Jmix tool window → Settings → Account Information.",
           "Чтобы не тратить время: git stash push -u и git checkout b/04-role — там CREATE_ONLY, rating, changelog, поле в view и готовая роль; покажите git diff --stat. Остановите приложение из B2 и нажмите Run: before-run задача увидит неприменённый changelog и предложит Execute and proceed — жмём его; пока приложение стартует — роль в редакторе (абзац «Роль показываем готовой»). Delete and proceed не нажимать, он удаляет changelog; если следом появится Changelog Preview — Discard and run. Повторите команду про CLIENT: колонка rating появилась. В приложении под admin: Application → Users → sales → Role assignments → Resource roles → Add → в диалоге Select resource roles отметить Manager: Clients read-only и UI: minimal access (без неё вход в UI невозможен) → Select → OK. Меню пользователя → Log out; на форме входа стереть подставленные admin / admin и войти как sales / sales.",
