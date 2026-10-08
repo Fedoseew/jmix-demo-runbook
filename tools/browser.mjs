@@ -15,8 +15,8 @@ async function loadPlaywright() {
   for (const name of ['playwright', 'playwright-core']) {
     try { return await import(name); } catch (_) { /* try the next one */ }
   }
-  throw new Error('Playwright not found: run `npm i --no-save playwright && npx playwright install chromium`, '
-    + 'or set PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs');
+  throw new Error('Playwright not found: run ./demo setup (or `npm i --no-save playwright && npx playwright install chromium` '
+    + 'in the runbook folder), or set PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs');
 }
 
 export async function launch() {

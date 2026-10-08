@@ -1,13 +1,14 @@
-// Fallback screenshots for demo A (and the B4 teaser) from running demo/ai-app stands; see assets/README.md.
+// Fallback screenshots for demo A (and the B4 teaser) from the running demo/ai-app stand; see assets/README.md.
+// `./demo prepare` runs the parts a4 b4 a5.
 // usage: node tools/capture-fallbacks.mjs [a4] [b4] [a5] [a6]      (no arguments: all four)
 //   a4  CRM AI questions 1–4 as admin and 1–2 as alice, each in a new dialog (they also stay in «История»)
 //       → a4-admin-q1.png … a4-admin-q4.png, a4-alice-q1.png, a4-alice-q2.png      needs SPRING_AI_OPENAI_APIKEY
 //   b4  the B4 teaser question as admin → b4-admin-revenue.png                    needs SPRING_AI_OPENAI_APIKEY
 //   a5  «Выручка клиентов (AI JPQL)»: the stored query, a run as admin and as alice → a5-*.png   no model call
-//   a6  the A6 result on aura-dark: «Каталог» and «Демо-сделки» → a6-result-*.png               no model call
+//   a6  the A6 result after a scenario run (before ./demo reset): «Каталог», «Демо-сделки» → a6-result-*.png   no model call
 // A key is checked only for presence in this shell (the stand reads it at its own start) and never printed.
-// env: STAND_URL (default http://localhost:8091/b2b-crm/), A6_STAND_URL (default http://localhost:8092/b2b-crm/),
-//      ASSETS_DIR (default assets/ next to tools/), ANSWER_TIMEOUT_S (default 300)
+// env: STAND_URL (default http://localhost:8091/b2b-crm/), ASSETS_DIR (default assets/ next to tools/),
+//      ANSWER_TIMEOUT_S (default 300)
 // Prints one line per saved file; exit code 1 if any part failed.
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,7 +18,6 @@ import { launch } from './browser.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const slash = u => (u.endsWith('/') ? u : `${u}/`);
 const STAND = slash(process.env.STAND_URL || 'http://localhost:8091/b2b-crm/');
-const A6_STAND = slash(process.env.A6_STAND_URL || 'http://localhost:8092/b2b-crm/');
 const ASSETS = process.env.ASSETS_DIR || join(root, 'assets');
 const ANSWER_MS = (Number(process.env.ANSWER_TIMEOUT_S) || 300) * 1000;
 const VIEWPORT = { width: 1440, height: 900 };
@@ -114,6 +114,9 @@ async function addClientToContext(page, client) {
     .catch(() => { throw new Error(`client «${client}» not found in the lookup (stand data reset or changed?)`); });
   await page.locator('vaadin-grid-cell-content:visible vaadin-checkbox').nth(1).click(); // 0 is «select all»
   await page.locator('vaadin-button:visible', { hasText: 'Выбрать' }).last().click();
+  // Typing while the lookup is still closing loses the message: wait until the dialog is gone.
+  await page.locator('vaadin-dialog-overlay[opened]').waitFor({ state: 'detached', timeout: 15000 })
+    .catch(() => { throw new Error(`the Clients lookup did not close after «Выбрать» (${client})`); });
 }
 
 // One question in a new dialog; resolves when the answer is in and the composer is enabled again.
@@ -173,7 +176,7 @@ const run = {
     await admin.goto(new URL('report/reports', STAND).href);
     const row = admin.locator('vaadin-grid-cell-content', { hasText: REPORT }).first();
     await row.waitFor({ timeout: 20000 }).catch(() => {
-      throw new Error(`no report «${REPORT}»: import ~/IdeaProjects/jmix-crm/demo/reports/ai-jpql-reports.zip first (A-pre)`);
+      throw new Error(`no report «${REPORT}»: the stand imports it at start when it is missing; restart the stand (./demo down, ./demo up a)`);
     });
     await row.click();
     await admin.locator('#editBtn').click();
@@ -194,23 +197,26 @@ const run = {
     await shot(alice, 'a5-alice-result.png');
   },
   async a6(browser) {
-    const admin = await login(browser, A6_STAND, 'admin');
+    const admin = await login(browser, STAND, 'admin');
     const catalog = admin.locator('text="Каталог" >> visible=true').first();
     await catalog.waitFor({ timeout: 20000 });
     const deals = admin.locator(`text="${A6_DEALS}" >> visible=true`).first();
     if (!(await deals.isVisible())) await catalog.click(); // the group may already be expanded; a click collapses it
     await deals.waitFor({ timeout: 10000 }).catch(() => {
-      throw new Error(`no «${A6_DEALS}» in «Каталог» on ${A6_STAND}: run the A6 scenario on aura-dark first`);
+      throw new Error(`no «${A6_DEALS}» in «Каталог» on ${STAND}: run the A6 scenario on the stand first`);
     });
     await shot(admin, 'a6-result-menu.png');
     await deals.click();
     await admin.locator('vaadin-grid-cell-content:visible', { hasText: A6_DEAL }).first().waitFor({ timeout: 20000 })
-      .catch(() => { throw new Error(`«${A6_DEALS}» has no «${A6_DEAL}»: finish step 9 of the A6 scenario on aura-dark`); });
+      .catch(() => { throw new Error(`«${A6_DEALS}» has no «${A6_DEAL}»: finish step 9 of the A6 scenario on the stand`); });
     await shot(admin, 'a6-result-deals.png');
   },
 };
 
-const browser = await launch();
+const browser = await launch().catch(e => {
+  console.error(`FAIL browser: ${e.message.split('\n')[0]}`);
+  process.exit(1);
+});
 let failed = 0;
 try {
   for (const part of parts) {

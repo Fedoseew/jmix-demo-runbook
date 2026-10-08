@@ -1,0 +1,475 @@
+#!/usr/bin/env bash
+# Demo infrastructure in one command: ./demo help
+# Demo A (and the B4 teaser) needs one stand, aura-light on :8091, from the jmix-crm-stand worktree (branch demo/ai-app):
+# from ~/demo-jars/crm.jar by stands.sh, or from source by the IntelliJ IDEA run configuration «Stand aura-light (OpenAI)».
+# Both use port 8091, JMX port 9191, the same database and log, so every command here works with either.
+# Demo B needs the crm-from-db PostgreSQL on :5434 (docker compose) and its app on :8080 (run from IDEA).
+# SPRING_AI_OPENAI_APIKEY is read from the environment and only checked for presence: it is never printed.
+# check also asks the running stand over JMX (tools/StandKeyCheck.java), which prints only set or missing.
+# Works with the macOS bash 3.2.
+set -euo pipefail
+
+RUNBOOK="$(cd "$(dirname "$0")" && pwd)"
+PROJECTS="$HOME/IdeaProjects"
+CRM="$PROJECTS/jmix-crm"
+STAND_WT="$PROJECTS/jmix-crm-stand"
+STAND_BRANCH=demo/ai-app
+STANDS="$STAND_WT/demo/dynmodel-ai-agent"
+STAND=aura-light
+PORT=8091
+JMX_PORT=9191
+URL="http://localhost:$PORT/b2b-crm/"
+INST="$STANDS/instances/$STAND"
+LOG="$INST/application.log"
+JAR="$HOME/demo-jars/crm.jar"
+LIVE_WT="$PROJECTS/jmix-crm-live"
+FROMDB="$PROJECTS/crm-from-db"
+FROMDB_GIT=https://github.com/Fedoseew/crm-from-db
+FROMDB_BRANCH=b/01-empty
+COMPOSE="$FROMDB/db/docker-compose.yml"
+DB_PORT=5434
+APP_PORT=8080
+START_TIMEOUT=120
+STOP_TIMEOUT=60
+CRM_TABLES=8
+TABLES_SQL="select count(*) from information_schema.tables where table_schema = 'public' and table_name in
+  ('client', 'contact', 'category', 'category_item', 'order_', 'order_item', 'invoice', 'user_')"
+ASSETS_A="a3-jmix-ai a3-cli-command a4-admin-q1 a4-admin-q2 a4-admin-q3 a4-admin-q4 a4-alice-q1 a4-alice-q2
+  a5-ai-jpql-query a5-admin-result a5-alice-result a6-step1 a6-step3 a6-step8 a6-step13 a6-result-menu a6-result-deals"
+ASSETS_B="b4-admin-revenue"
+REPORTS_RE='AI JPQL demo reports (imported|are present|were not imported)'
+
+usage() {
+  cat <<'EOF'
+Usage: ./demo <command>
+
+Brings up the demo infrastructure. Projects live in ~/IdeaProjects: jmix-crm (stays on main, A1 and A2),
+jmix-crm-stand (worktree on demo/ai-app, the stand), crm-from-db (demo B).
+
+  setup            once, and after demo/ai-app changes: create the jmix-crm-stand worktree, build the stand jar
+                   and copy it to ~/demo-jars/crm.jar, clone crm-from-db and put it on b/01-empty (if clean),
+                   install Playwright with Chromium for ./demo prepare (if missing)
+  check [a|b|all]  the pre-flight as a PASS/WARN/FAIL table, exit code 1 on any FAIL (default: all)
+  up [a|b]         a: start the stand aura-light on :8091 unless it already runs (for example from IDEA);
+                   the agent runs on OpenAI, as in the IDEA run configuration, whatever OPENROUTER_API_KEY is
+                   b: also the crm-from-db PostgreSQL on :5434 (default: a)
+  prepare          with the stand up: warm-up, the A4 dialogs and fresh fallback screenshots in assets/
+                   (tools/capture-fallbacks.mjs a4 b4 a5; needs the key and Playwright from ./demo setup)
+  reset [a|b] [-y] a: stop the stand, delete its database and files, start a fresh one (default: a)
+                   b: after a demo B rehearsal, reload the crm-from-db database from the dump and put
+                   crm-from-db on b/01-empty; then run «crm-from-db app» once and create the user sales / sales
+                   (-y: do not ask)
+  down             stop the stand (gracefully) and the crm-from-db PostgreSQL
+  status           what runs where
+  logs [jpql]      follow the stand log; jpql: the executeQuery(jpql= lines
+  help             this text
+
+The stand runs from the jar (./demo up a) or in IntelliJ IDEA: open ~/IdeaProjects/jmix-crm-stand and run
+«Stand aura-light (OpenAI)». Both use port 8091, JMX port 9191 and the same database and log: run one at a time.
+Demo B in IDEA: open ~/IdeaProjects/crm-from-db, run «crm-from-db database» and «crm-from-db app» (:8080).
+SPRING_AI_OPENAI_APIKEY comes from the environment and is never printed.
+EOF
+}
+
+say() { printf '%s\n' "$*"; }
+die() { printf 'demo: %s\n' "$*" >&2; exit 1; }
+key_set() { [ -n "${SPRING_AI_OPENAI_APIKEY:-}" ]; }
+listening() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
+http_code() { curl -s -o /dev/null -m 5 -w '%{http_code}' "$1" || true; }
+# ponytail: perl's alarm instead of coreutils timeout, which macOS lacks
+run_for() { local secs=$1; shift; perl -e 'alarm shift; exec @ARGV or exit 127' "$secs" "$@"; }
+mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
+branch_of() { git -C "$1" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?"; }
+has_branch() { git -C "$1" rev-parse --verify -q "refs/heads/$2" >/dev/null; }
+docker_ok() { run_for 15 docker info >/dev/null 2>&1; }
+compose() { docker compose -f "$COMPOSE" "$@"; }
+db_sql() { run_for 15 docker compose -f "$COMPOSE" exec -T db psql -tA -U crm -d crm -c "$1" 2>/dev/null | tr -d '[:space:]' || true; }
+db_tables() { db_sql "$TABLES_SQL"; }
+# Chromium starts through tools/browser.mjs, the way ./demo prepare starts it
+playwright_ok() {
+  (cd "$RUNBOOK" && run_for 60 node -e "import('./tools/browser.mjs').then(m => m.launch()).then(b => b.close())") >/dev/null 2>&1
+}
+jpql_count() { if [ -f "$LOG" ]; then grep -cF 'executeQuery(jpql=' "$LOG" || true; else echo 0; fi; }
+reports_line() { if [ -f "$LOG" ]; then grep -E "$REPORTS_RE" "$LOG" | tail -1 | sed -E 's/.*(AI JPQL demo reports)/\1/' || true; fi; }
+reports_seen() { if [ -f "$LOG" ]; then grep -cE "$REPORTS_RE" "$LOG" || true; else echo 0; fi; }
+no_key() { die "SPRING_AI_OPENAI_APIKEY is not set in this shell: export it (or open a new terminal after editing ~/.zshrc), then $1"; }
+confirm() { # -y flag (1 or 0), question
+  [ "$1" = 1 ] && return 0
+  local answer=""
+  read -r -p "$2 [y/N] " answer || true
+  case "$answer" in y|Y|yes) ;; *) die "cancelled" ;; esac
+}
+
+java_major() { # java or javac → major version, empty if missing
+  local bin="${JAVA_HOME:+$JAVA_HOME/bin/}$1"
+  "$bin" -version 2>&1 | grep -m1 -E '^javac |version "' | sed -E 's/^[^0-9]*([0-9]+).*/\1/' || true
+}
+
+stand_pid() { lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -1 || true; }
+stand_from_jar() { local pid; pid=$(stand_pid); [ -n "$pid" ] && [ -f "$INST/pid" ] && [ "$(cat "$INST/pid")" = "$pid" ]; }
+stand_source() {
+  if stand_from_jar; then echo "from the jar (./demo up a, pid $(stand_pid))"
+  else echo "not started by ./demo: the IDEA run configuration or another process (pid $(stand_pid))"; fi
+}
+
+wait_http() { # url seconds → prints the first HTTP code other than 000; fails on timeout
+  local deadline=$((SECONDS + $2)) code
+  while :; do
+    code=$(http_code "$1")
+    if [ "$code" != 000 ]; then echo "$code"; return 0; fi
+    [ "$SECONDS" -lt "$deadline" ] || return 1
+    sleep 2
+  done
+}
+
+# --- stand -------------------------------------------------------------------------------------------------------
+
+stand_up() {
+  local started=0 seen code
+  seen=$(reports_seen)
+  if listening "$PORT"; then
+    say "stand: already running on $PORT, $(stand_source)"
+  elif listening "$JMX_PORT"; then
+    say "stand: starting (JMX port $JMX_PORT is up, $PORT not yet), probably from IDEA"
+  else
+    [ -x "$STANDS/stands.sh" ] || die "no $STANDS/stands.sh: run ./demo setup first"
+    [ -f "$JAR" ] || die "no $JAR: run ./demo setup first"
+    key_set || no_key "./demo up a"
+    # STAND_PROVIDER=openai: stands.sh would send the agent to OpenRouter whenever OPENROUTER_API_KEY is set
+    STAND_PROVIDER=openai STAND_JAR="$JAR" "$STANDS/stands.sh" start "$STAND"
+    started=1
+  fi
+  say "stand: waiting for $URL (up to ${START_TIMEOUT} s)"
+  code=$(wait_http "$URL" "$START_TIMEOUT") || die "the stand did not answer in ${START_TIMEOUT} s: see $INST/console.log and ./demo logs"
+  [ "$code" = 302 ] || die "$URL answers $code instead of 302: is another application on port $PORT?"
+  if [ "$started" = 1 ]; then # the report import logs its line right after the start; give it a moment
+    local deadline=$((SECONDS + 30))
+    while [ "$(reports_seen)" -le "$seen" ] && [ "$SECONDS" -lt "$deadline" ]; do sleep 1; done
+  fi
+  say "stand: up, $URL (admin / admin)"
+  say "reports: $(reports_line)"
+}
+
+stand_down() {
+  if ! listening "$PORT"; then
+    if listening "$JMX_PORT"; then die "the stand is still starting: run ./demo down again once it answers"; fi
+    say "stand: not running"
+    return 0
+  fi
+  [ -x "$STANDS/stands.sh" ] || die "no $STANDS/stands.sh to stop the stand: stop it where it was started"
+  "$STANDS/stands.sh" stop "$STAND" ||
+    die "graceful stop failed: if the stand runs in IDEA, press Stop there once (never force-stop it)"
+  local deadline=$((SECONDS + STOP_TIMEOUT))
+  while listening "$PORT" || listening "$JMX_PORT"; do
+    [ "$SECONDS" -lt "$deadline" ] || die "the stand still runs after ${STOP_TIMEOUT} s: if it runs in IDEA, press Stop there once; never kill -9 it"
+    sleep 1
+  done
+  say "stand: stopped"
+}
+
+# --- crm-from-db PostgreSQL --------------------------------------------------------------------------------------
+
+db_up() {
+  docker_ok || die "Docker is not running: start Docker Desktop, then ./demo up b"
+  [ -f "$COMPOSE" ] || die "no $COMPOSE: run ./demo setup first"
+  compose up -d --wait db
+  local deadline=$((SECONDS + START_TIMEOUT)) n
+  while n=$(db_tables); [ "$n" != "$CRM_TABLES" ]; do
+    [ "$SECONDS" -lt "$deadline" ] || die "the database has ${n:-no} of $CRM_TABLES CRM tables after ${START_TIMEOUT} s: compose logs db"
+    sleep 2
+  done
+  say "db: up on :$DB_PORT, $CRM_TABLES CRM tables (crm / crm)"
+}
+
+# A clean crm-from-db goes to the demo B start branch; local changes are left alone.
+fromdb_to_start() {
+  local b; b=$(branch_of "$FROMDB")
+  if [ "$b" = "$FROMDB_BRANCH" ]; then say "crm-from-db: on $FROMDB_BRANCH"
+  elif [ -n "$(git -C "$FROMDB" status --short)" ]; then say "crm-from-db: on $b with local changes, left as is (git -C $FROMDB status)"
+  else git -C "$FROMDB" checkout -q "$FROMDB_BRANCH"; say "crm-from-db: checked out $FROMDB_BRANCH (was $b)"; fi
+}
+
+db_down() {
+  if [ ! -f "$COMPOSE" ] || ! docker_ok; then say "db: not running"; return 0; fi
+  compose stop db
+  say "db: stopped (data kept in the volume)"
+}
+
+# --- commands ----------------------------------------------------------------------------------------------------
+
+cmd_setup() {
+  [ -d "$CRM/.git" ] || die "no $CRM: git clone https://github.com/jmix-framework/jmix-crm.git $CRM"
+  if [ -e "$STAND_WT" ]; then
+    [ "$(branch_of "$STAND_WT")" = "$STAND_BRANCH" ] || die "$STAND_WT is on $(branch_of "$STAND_WT"), expected $STAND_BRANCH"
+    say "worktree: $STAND_WT on $STAND_BRANCH"
+  else
+    [ "$(branch_of "$CRM")" != "$STAND_BRANCH" ] ||
+      die "$CRM itself is on $STAND_BRANCH: git -C $CRM checkout main, then ./demo setup"
+    git -C "$CRM" worktree add "$STAND_WT" "$STAND_BRANCH"
+  fi
+
+  if listening "$PORT" || listening "$JMX_PORT"; then
+    die "the stand is running and reads its jar and classes: ./demo down first"
+  fi
+  local log="$STAND_WT/build/demo-setup.log"
+  mkdir -p "$STAND_WT/build"
+  say "build: ./gradlew bootJar in $STAND_WT (log: $log)"
+  if ! (cd "$STAND_WT" && ./gradlew --console=plain bootJar) 2>&1 | tee "$log"; then
+    if grep -qE 'Could not (find|resolve) .*3\.1\.999-SNAPSHOT|3\.1\.999-SNAPSHOT.*was not found' "$log"; then
+      cat >&2 <<'EOF'
+
+demo: Jmix or Jmix Premium 3.1.999-SNAPSHOT is missing in the local Maven. Republish both from master
+(demo/dynmodel-ai-agent/README.md in jmix-crm-stand, Build, steps 2-3), then run ./demo setup again:
+
+  # in your jmix checkout, branch master
+  ./gradlew publishToMavenLocal -x test -x javadoc \
+      :jmix-build:publishToMavenLocal :jmix-gradle-plugin:publishToMavenLocal \
+      :jmix-translations:publishToMavenLocal :jmix-templates:publishToMavenLocal
+  # in your jmix-premium checkout, branch master (needs access)
+  ./gradlew publishToMavenLocal -x test -x javadoc
+EOF
+      exit 1
+    fi
+    die "bootJar failed, see $log"
+  fi
+  mkdir -p "$(dirname "$JAR")"
+  # a copy outside the repository survives branch switches and clean builds; mv makes the swap atomic
+  cp "$STAND_WT/build/libs/crm.jar" "$JAR.new"
+  mv -f "$JAR.new" "$JAR"
+  say "jar: $JAR"
+
+  [ -d "$FROMDB/.git" ] || git clone "$FROMDB_GIT" "$FROMDB"
+  fromdb_to_start
+
+  if playwright_ok; then say "playwright: Chromium starts"
+  else
+    command -v npm >/dev/null || die "no npm: install Node.js 18+ (./demo prepare needs Playwright)"
+    say "playwright: installing into $RUNBOOK/node_modules (git-ignored)"
+    (cd "$RUNBOOK" && npm i --no-save --no-audit --no-fund playwright && npx playwright install chromium) ||
+      die "the Playwright install failed (output above)"
+    playwright_ok || die "Playwright is installed but Chromium does not start: node tools/capture-fallbacks.mjs a5 shows why"
+    say "playwright: installed, Chromium starts"
+  fi
+  say ""
+  say "Next: ./demo up a (or IDEA: open $STAND_WT, run «Stand aura-light (OpenAI)»), then ./demo check"
+}
+
+FAILS=0
+row() { # PASS|WARN|FAIL|SKIP, what, detail
+  printf '%-4s  %-24s %s\n' "$1" "$2" "${3:-}"
+  if [ "$1" = FAIL ]; then FAILS=$((FAILS + 1)); fi
+}
+
+check_tools() {
+  local j
+  for j in java javac; do
+    local v; v=$(java_major "$j")
+    if [ -n "$v" ] && [ "$v" -ge 21 ]; then row PASS "$j 21+" "$j $v"
+    else row FAIL "$j 21+" "${v:+found $v; }a JDK 21+ on PATH or JAVA_HOME"; fi
+  done
+  if key_set; then row PASS SPRING_AI_OPENAI_APIKEY "set (value not shown)"
+  else row FAIL SPRING_AI_OPENAI_APIKEY "missing in this shell: export it"; fi
+  if run_for 20 jmix --no-update --help >/dev/null 2>&1; then row PASS "jmix CLI" "jmix --no-update --help"
+  else row FAIL "jmix CLI" "jmix --no-update --help does not answer"; fi
+}
+
+check_stand() {
+  if [ "$(branch_of "$STAND_WT")" = "$STAND_BRANCH" ]; then row PASS "stand worktree" "$STAND_WT on $STAND_BRANCH"
+  else row FAIL "stand worktree" "no $STAND_WT on $STAND_BRANCH: ./demo setup"; fi
+  if [ ! -f "$JAR" ]; then row FAIL "stand jar" "no $JAR: ./demo setup"
+  elif [ "$(mtime "$JAR")" -lt "$(git -C "$CRM" log -1 --format=%ct "$STAND_BRANCH" 2>/dev/null || echo 0)" ]; then
+    row WARN "stand jar" "older than the $STAND_BRANCH head: ./demo setup"
+  else row PASS "stand jar" "$JAR"; fi
+  if listening "$PORT"; then
+    local code; code=$(http_code "$URL")
+    if [ "$code" = 302 ]; then row PASS "stand :$PORT" "HTTP 302, $(stand_source)"
+    else row FAIL "stand :$PORT" "HTTP $code instead of 302: another application on the port?"; fi
+    check_stand_keys
+    local reports; reports=$(reports_line)
+    case "$reports" in
+      *"were not imported"*) row FAIL "A5 reports" "$reports: see ./demo logs" ;;
+      *imported*|*present*) row PASS "A5 reports" "$reports" ;;
+      *) row WARN "A5 reports" "no import line in the log yet" ;;
+    esac
+    local jpql; jpql=$(jpql_count)
+    if [ "$jpql" -gt 0 ]; then row PASS "JPQL in the log" "$jpql executeQuery(jpql= lines"
+    else row WARN "JPQL in the log" "none yet: ask CRM AI once (./demo prepare)"; fi
+  elif listening "$JMX_PORT"; then row WARN "stand :$PORT" "starting (JMX port $JMX_PORT is up)"
+  else row WARN "stand :$PORT" "not running: ./demo up a (or the IDEA run configuration)"; fi
+}
+
+# The key as the stand sees it: a stand from IDEA has IDEA's environment, which may predate ~/.zshrc.
+check_stand_keys() {
+  local out key state label
+  out=$(run_for 30 "${JAVA_HOME:+$JAVA_HOME/bin/}java" "$RUNBOOK/tools/StandKeyCheck.java" "$JMX_PORT" 2>/dev/null || true)
+  while read -r key state; do
+    case "$key" in
+      spring.ai.openai.api-key) label="stand key: CRM AI" ;;
+      crm.dynmodel.api-key) label="stand key: agent" ;;
+      *) row WARN "stand keys" "not asked: JMX $JMX_PORT gave ${state:-no answer}; open CRM AI, no red key notification"
+         continue ;;
+    esac
+    if [ "$state" = set ]; then row PASS "$label" "$key set in the stand (value not shown)"
+    else row FAIL "$label" "$key missing in the stand: restart IDEA from a shell with the key, or ./demo down && ./demo up a"; fi
+  done <<< "${out:-jmx-error none}"
+}
+
+check_assets() { # label, names...
+  local label=$1 missing="" f
+  shift
+  for f in "$@"; do [ -f "$RUNBOOK/assets/$f.png" ] || missing="$missing $f.png"; done
+  if [ -z "$missing" ]; then row PASS "$label" "$# in assets/"
+  else row WARN "$label" "missing:$missing (fallbacks: ./demo prepare takes a4, a5, b4; the rest by hand, assets/README.md)"; fi
+}
+
+check_a() {
+  local b; b=$(branch_of "$CRM")
+  if [ "$b" != main ]; then row FAIL "jmix-crm on main" "on $b: git -C $CRM checkout main"
+  elif [ -n "$(git -C "$CRM" status --short --untracked-files=no)" ]; then
+    row FAIL "jmix-crm on main" "tracked files changed: git -C $CRM status"
+  else row PASS "jmix-crm on main" "tracked files clean"; fi
+  if has_branch "$CRM" demo/agent-task; then row PASS "demo/agent-task" "branch exists"
+  else row FAIL "demo/agent-task" "no branch in $CRM"; fi
+  if [ -e "$LIVE_WT" ] || has_branch "$CRM" demo/live-run; then
+    row WARN "A2 live worktree" "remove the rehearsal one: git -C $CRM worktree remove --force $LIVE_WT; git -C $CRM branch -D demo/live-run"
+  else row PASS "A2 live worktree" "no jmix-crm-live or demo/live-run left over"; fi
+  if playwright_ok; then row PASS "Playwright" "Chromium starts (./demo prepare)"
+  else row FAIL "Playwright" "Chromium does not start: ./demo setup installs it"; fi
+  # shellcheck disable=SC2086 # word splitting of the list is intended
+  check_assets "A screenshots" $ASSETS_A
+}
+
+check_b() {
+  if docker_ok; then row PASS "docker" "running"; else row FAIL "docker" "not running: start Docker Desktop"; fi
+  if [ ! -d "$FROMDB/.git" ]; then row FAIL "crm-from-db" "no $FROMDB: ./demo setup"
+  elif [ "$(branch_of "$FROMDB")" != "$FROMDB_BRANCH" ]; then
+    row FAIL "crm-from-db" "on $(branch_of "$FROMDB"): git -C $FROMDB checkout $FROMDB_BRANCH"
+  elif [ -n "$(git -C "$FROMDB" status --short)" ]; then row FAIL "crm-from-db" "working tree not clean: git -C $FROMDB status"
+  else row PASS "crm-from-db" "on $FROMDB_BRANCH, clean"; fi
+  local n; n=$(db_tables)
+  if [ "$n" = "$CRM_TABLES" ]; then row PASS "db :$DB_PORT" "$CRM_TABLES CRM tables"; check_b_rehearsal
+  else row FAIL "db :$DB_PORT" "${n:-no} CRM tables answer: ./demo up b (or IDEA «crm-from-db database»)"; fi
+  if listening "$APP_PORT"; then row PASS "app :$APP_PORT" "HTTP $(http_code "http://localhost:$APP_PORT/")"
+  else row WARN "app :$APP_PORT" "not running: IDEA, run «crm-from-db app»"; fi
+  # shellcheck disable=SC2086
+  check_assets "B4 screenshot" $ASSETS_B
+}
+
+# B3 adds client.rating live and assigns roles to sales: neither may be left over from a rehearsal.
+check_b_rehearsal() {
+  case "$(db_sql "select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'client' and column_name = 'rating'")" in
+    0) row PASS "client.rating" "absent, as in the dump" ;;
+    1) row FAIL "client.rating" "left from a rehearsal (B3 diff would be empty): ./demo reset b" ;;
+    *) row FAIL "client.rating" "the query failed: compose logs db" ;;
+  esac
+  local sales; sales=$(db_sql "select count(*) || ':' || (select count(*) from sec_role_assignment where username = 'sales') from crm_user where username = 'sales'")
+  case "$sales" in
+    1:0) row PASS "user sales" "exists, no roles" ;;
+    1:*) row FAIL "user sales" "has roles from a rehearsal: ./demo reset b, then create sales again" ;;
+    0:*) row FAIL "user sales" "missing: in the app as admin, Users → Create sales / sales, no roles (B3)" ;;
+    *) row FAIL "user sales" "no crm_user table yet: run «crm-from-db app» once, then Users → Create sales / sales" ;;
+  esac
+}
+
+cmd_check() {
+  case "$1" in a|b|all) ;; *) die "use: ./demo check [a|b|all]" ;; esac
+  check_tools
+  check_stand
+  case "$1" in a) check_a ;; b) check_b ;; all) check_a; check_b ;; esac
+  if [ "$FAILS" -gt 0 ]; then say "$FAILS FAIL"; exit 1; fi
+  say "no FAIL"
+}
+
+cmd_up() {
+  case "$1" in
+    a) stand_up ;;
+    b) db_up; stand_up; say "app: IDEA, project crm-from-db, run «crm-from-db app» (http://localhost:$APP_PORT)" ;;
+    *) die "use: ./demo up [a|b]" ;;
+  esac
+}
+
+cmd_prepare() {
+  [ "$(http_code "$URL")" = 302 ] || die "the stand is not up: ./demo up a first"
+  key_set || no_key "./demo prepare"
+  say "prepare: CRM AI questions of A4 (admin, alice) and B4, the A5 report; screenshots into assets/ (a few minutes)"
+  (cd "$RUNBOOK" && STAND_URL="$URL" node tools/capture-fallbacks.mjs a4 b4 a5) ||
+    die "tools/capture-fallbacks.mjs failed: see the FAIL lines above"
+  say "JPQL in the log: $(jpql_count) executeQuery(jpql= lines"
+}
+
+cmd_reset() { # [a|b] [-y]
+  local what=a yes=0 arg
+  for arg in "$@"; do
+    case "$arg" in a|b) what=$arg ;; -y) yes=1 ;; *) die "use: ./demo reset [a|b] [-y]" ;; esac
+  done
+  if [ "$what" = b ]; then reset_b "$yes"; else reset_a "$yes"; fi
+}
+
+reset_b() {
+  docker_ok || die "Docker is not running: start Docker Desktop, then ./demo reset b"
+  [ -f "$COMPOSE" ] || die "no $COMPOSE: run ./demo setup first"
+  if listening "$APP_PORT"; then die "an app runs on :$APP_PORT: stop «crm-from-db app» in IDEA first"; fi
+  confirm "$1" "Delete the crm-from-db database volume (user sales, B3 changes) and reload db/crm.sql?"
+  compose down -v
+  fromdb_to_start
+  db_up
+  say "next: IDEA, project crm-from-db, run «crm-from-db app» once, create the user sales / sales without roles"
+  say "      (Users → Create), then ./demo check b"
+}
+
+reset_a() {
+  confirm "$1" "Delete the stand database and files in $INST and start a fresh stand?"
+  local from_ide=0
+  if listening "$PORT" && ! stand_from_jar; then from_ide=1; fi
+  stand_down
+  rm -rf "$INST"
+  say "stand: data deleted ($INST)"
+  if [ "$from_ide" = 1 ]; then
+    say "the stand ran from IDEA: run «Stand aura-light (OpenAI)» there again (or ./demo up a)"
+    return 0
+  fi
+  stand_up
+}
+
+cmd_down() {
+  stand_down
+  db_down
+  if listening "$APP_PORT"; then say "app: still running on :$APP_PORT, stop «crm-from-db app» in IDEA"; fi
+}
+
+cmd_status() {
+  if listening "$PORT"; then say "stand  :$PORT  HTTP $(http_code "$URL"), $(stand_source)"
+  elif listening "$JMX_PORT"; then say "stand  :$PORT  starting"
+  else say "stand  :$PORT  stopped"; fi
+  say "       data $INST$([ -d "$INST" ] || echo ' (none yet)'), log $LOG"
+  if ! docker_ok; then say "db     :$DB_PORT  docker is not running"
+  elif listening "$DB_PORT"; then say "db     :$DB_PORT  running, $(db_tables) of $CRM_TABLES CRM tables"
+  else say "db     :$DB_PORT  stopped"; fi
+  if listening "$APP_PORT"; then say "app    :$APP_PORT  HTTP $(http_code "http://localhost:$APP_PORT/")"
+  else say "app    :$APP_PORT  stopped"; fi
+}
+
+cmd_logs() {
+  [ -f "$LOG" ] || die "no stand log yet ($LOG): ./demo up a"
+  case "$1" in
+    "") exec tail -n 50 -f "$LOG" ;;
+    jpql) grep -F 'executeQuery(jpql=' "$LOG" | tail -n 20 || true; say "executeQuery(jpql= lines: $(jpql_count)" ;;
+    *) die "use: ./demo logs [jpql]" ;;
+  esac
+}
+
+cmd=${1:-help}
+if [ $# -gt 0 ]; then shift; fi
+[ $# -le 1 ] || [ "$cmd" = reset ] || die "too many arguments: ./demo help"
+case "$cmd" in
+  setup) [ $# -eq 0 ] || die "use: ./demo setup"; cmd_setup ;;
+  check) cmd_check "${1:-all}" ;;
+  up) cmd_up "${1:-a}" ;;
+  prepare) [ $# -eq 0 ] || die "use: ./demo prepare"; cmd_prepare ;;
+  reset) cmd_reset "$@" ;;
+  down) [ $# -eq 0 ] || die "use: ./demo down"; cmd_down ;;
+  status) [ $# -eq 0 ] || die "use: ./demo status"; cmd_status ;;
+  logs) cmd_logs "${1:-}" ;;
+  help|-h|--help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac
