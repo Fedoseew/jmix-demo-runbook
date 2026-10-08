@@ -21,6 +21,7 @@
 
   /* ================= СЦЕНА (окно для зала) ================= */
   body.view-stage { display: grid; place-items: center; background: #06051A; overflow: hidden; }
+  body.view-stage.light { background: #E3E4EF; } /* светлая сцена — светлые и полосы вокруг слайда */
   body.view-stage .stage { width: min(100vw, 100vh * 16 / 9); }
 
   .stage {
@@ -33,7 +34,7 @@
       radial-gradient(55% 70% at -5% 105%, rgb(35 28 110 / .9) 0%, rgb(35 28 110 / 0) 70%),
       linear-gradient(165deg, #1B1556 0%, #17124B 45%, #0F0B36 100%);
   }
-  /* светлая сцена для освещённого зала (T) */
+  /* светлая сцена для освещённого зала (L) */
   .stage.light {
     --s-title: var(--navy); --s-text: #26215E; --s-muted: #55528A; --s-logo: var(--navy); --s-wm: var(--navy);
     --s-track: rgb(23 18 75 / .12); --s-done: rgb(23 18 75 / .42); --s-line: rgb(23 18 75 / .12);
@@ -53,10 +54,11 @@
     color: var(--s-title); text-wrap: balance; }
   .st-rule { flex: none; width: 4.6cqw; height: .32cqw; border-radius: 1cqw; background: var(--yellow); margin: 1.8cqw 0 2.1cqw; }
   .st-list { flex: 1; min-height: 0; overflow: hidden; margin: 0; padding: 0; list-style: none;
-    font-size: var(--fs, 2.35cqw); line-height: 1.26; display: flex; flex-direction: column; gap: .45em; }
+    font-size: var(--fs, 2.5cqw); line-height: 1.26; display: flex; flex-direction: column; gap: .45em; }
   .st-list li { position: relative; padding-left: 1.15em; text-wrap: balance; }
   .st-list li::before { content: ""; position: absolute; left: .1em; top: .46em; width: .34em; height: .34em;
     background: var(--yellow); border-radius: .05em; transform: rotate(45deg); }
+  .nw { white-space: nowrap; } /* слово через дефис («CRM-система») не рвётся: typo() */
 
   /* пре-флайт на сцене: заставка «скоро начнём», чек-лист живёт только в консоли */
   .hold .st-inner { inset: 4.4cqw 5.2cqw 6.2cqw; display: grid; grid-template-columns: 1fr 1.25fr; column-gap: 4.6cqw; align-items: center; }
@@ -76,12 +78,17 @@
   .st-seg { position: relative; flex: var(--m) 1 0; min-width: 0; border-radius: 1cqw; overflow: hidden; background: var(--s-track); }
   .st-seg.done { background: var(--s-done); }
   .st-seg.cur { background: rgb(253 180 43 / .30); } /* «сейчас» видно и при 0%: таймер блока ещё не шёл */
+  .stage.light .st-seg.cur { background: rgb(253 180 43 / .6); box-shadow: inset 0 0 0 1px rgb(180 115 0 / .6); } /* на белом .3 тусклее «пройдено» */
   .st-seg.cur::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--p, 0%); background: var(--yellow); }
-  .st-hint { position: absolute; right: 4.6cqw; bottom: 4cqw; font-size: 1.05cqw; color: var(--ink);
+  /* в пустой строке шапки между названием демо и логотипом: никогда не ложится на пункты слайда */
+  .st-hint { position: absolute; top: 3.3cqw; right: 14cqw; font-size: 1.05cqw; color: var(--ink);
     background: rgb(10 8 31 / .86); border: 1px solid var(--line); border-radius: 2cqw; padding: .5cqw 1cqw;
     opacity: 0; transition: opacity .2s; pointer-events: none; }
   .st-hint kbd { font: 600 1em var(--mono); color: var(--yellow); background: none; border: 0; padding: 0; }
-  body.view-stage .stage:hover .st-hint { opacity: 1; }
+  /* подсказка — несколько секунд после загрузки и движения мыши (app.js showPointer), в полном экране курсор прячется */
+  html.pointer body.view-stage .st-hint { opacity: 1; }
+  html.pointer body.view-stage:has(> #status.on) .st-hint { opacity: 0; } /* не под сообщением подготовки */
+  :root:fullscreen:not(.pointer) body.view-stage { cursor: none; }
 
   /* ================= КОНСОЛЬ ДОКЛАДЧИКА ================= */
   .console { height: 100vh; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px; padding: 10px 14px 14px; }
@@ -101,6 +108,7 @@
   .c-brand { display: flex; align-items: center; gap: 10px; }
   .c-brand svg { height: 26px; width: auto; color: var(--ink); }
   .c-brand .cap { border-left: 1px solid var(--line); padding-left: 10px; letter-spacing: .03em; white-space: nowrap; }
+  @media (max-width: 1399px) { .c-brand .cap { display: none; } } /* место легенде клавиш: шапка в одну строку на 1280 */
   .seg-ctl { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
   .seg-ctl button { border: 0; background: transparent; border-radius: 7px; padding: 6px 10px; cursor: pointer;
     font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -110,9 +118,14 @@
     border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px 5px 8px; }
   .c-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgb(65 184 131 / .2); }
   .c-pill span { color: var(--muted); }
+  .c-pill.off i { background: var(--muted); box-shadow: none; } /* окно сцены не пишет пульс */
   .c-keys { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); white-space: nowrap; }
   .c-keys span { display: inline-flex; align-items: center; gap: 3px; }
   .c-keys kbd { padding: 2px 4px; }
+  /* консоль не в фокусе (после F в окне сцены, в Studio): легенда клавиш уступает место предупреждению */
+  .c-away { display: none; margin: 0 0 0 auto; font-size: 14px; color: var(--yellow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  html.away .c-keys { display: none; }
+  html.away .c-away { display: block; }
   .c-clock { font: 600 15px var(--sans); font-variant-numeric: tabular-nums; color: var(--ink);
     padding-left: 10px; border-left: 1px solid var(--line); }
 
@@ -140,9 +153,16 @@
   .ag-l1 .m { color: var(--muted); font-variant-numeric: tabular-nums; }
   .ag-l1 .ok { color: var(--green); }
   .ag-l2 { margin-top: 3px; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* где хватает высоты, название блока — в две строки: на 1440×900 узкие сегменты иначе показывали «Окружение аге…» */
+  @media (min-height: 800px) {
+    .ag-seg { height: 68px; }
+    .ag-l2.title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; }
+  }
   .ag-seg.cur .ag-l2 { color: var(--ink); }
   .ag-l2 .over { color: var(--pink-text); } .ag-l2 .under { color: var(--green); }
-  @container (width < 100px) { .ag-l2.title { visibility: hidden; } .ag-l2 .f-lbl { display: none; } }
+  @container (width < 100px) { .ag-l2 .f-lbl { display: none; } }
+  @media (max-height: 799px) { @container (width < 100px) { .ag-l2.title { visibility: hidden; } } }
+  @container (width < 40px) { .ag-l2.title { visibility: hidden; } }
   @container (width < 60px) { .ag-l1 .m { display: none; } }
 
   /* основная сетка: шаги — самая нужная колонка, ей больше места */
@@ -156,6 +176,7 @@
   .t-big { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
   .t-big strong { font-size: 54px; line-height: 1.05; font-weight: 650; letter-spacing: -.02em; color: var(--white); font-variant-numeric: tabular-nums; }
   .t-big strong.late { color: var(--pink-text); }
+  .t-big strong.paused { color: var(--muted); } /* пауза — приглушённые цифры: забытый T заметен издалека */
   .t-big span { font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .t-bar { height: 6px; border-radius: 6px; background: var(--panel-2); overflow: hidden; margin: 8px 0 10px; }
   .t-bar i { display: block; height: 100%; width: var(--p); background: var(--yellow); border-radius: 6px; }
@@ -165,6 +186,7 @@
   .t-stats dd.late { color: var(--pink-text); }
   .t-idle { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.4; }
   .t-bar.ok i { background: var(--green); }
+  .t-bar.late i { background: var(--pink); }
   .t-live.wait { color: var(--muted); } .t-live.wait::before { background: var(--muted); box-shadow: none; }
   .t-exit { margin: 11px 0 0; display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1.3; padding: 7px 8px 7px 9px;
     border-radius: 8px; background: rgb(219 221 225 / .06); color: var(--muted); }
@@ -188,6 +210,7 @@
   }
 
   .next { padding: 11px 13px 12px; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 7px; }
+  .next.last { flex: none; } /* последний блок: карточка по содержимому, а не пустая на пол-колонки */
   .nx-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
   .nx-title { font-size: 16.5px; font-weight: 650; color: var(--white); line-height: 1.25; text-wrap: balance; }
   .nx-steps { list-style: none; margin: 3px 0 0; padding: 9px 0 0; border-top: 1px solid var(--line); display: grid; gap: 8px; }
@@ -291,6 +314,7 @@
   #status { position: fixed; left: 50%; bottom: 18px; translate: -50% 0; background: var(--panel-2); border: 1px solid var(--line);
     color: var(--ink); border-radius: 10px; padding: 8px 14px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
   #status.on { opacity: 1; }
+  body.view-stage #status { bottom: calc(3vw + 8px); } /* над полосой прогресса сцены (её верх — 3cqw ≤ 3vw от низа) */
 
   @media (min-width: 1600px) {
     .c-main { grid-template-columns: 420px minmax(0, .85fr) minmax(0, 1.3fr); }
@@ -303,39 +327,72 @@
   }
 
   /* ================= ПАНЕЛЬ ДЛЯ ЗЕРКАЛА (клавиша N на сцене) ================= */
-  /* Сцена ужимается, остаётся 16:9 и встаёт по центру верхней строки; панель — нижняя строка высотой --dock-h. */
-  body.view-stage.dock-open { --dock-h: clamp(120px, 19vh, 190px); grid-template-rows: minmax(0, 1fr) auto; }
+  /* Панель — нижняя строка по содержимому (от --dock-min до 30vh): длинный шаг Studio виден целиком.
+     Сцена — в контейнере остатка высоты (.st-box) и остаётся 16:9 при любой высоте панели. */
+  body.view-stage.dock-open { --dock-min: clamp(92px, 13vh, 150px); grid-template-rows: minmax(0, 1fr) auto; }
   body.view-stage.dock-open #app { display: contents; }
-  body.view-stage.dock-open .stage { width: min(100vw, (100vh - var(--dock-h)) * 16 / 9); }
-  body.dock-open #status { bottom: calc(var(--dock-h) + 12px); }
-  .dock { align-self: stretch; justify-self: stretch; height: var(--dock-h); min-width: 0; overflow: hidden;
-    display: grid; grid-template-columns: auto minmax(0, 1.6fr) minmax(0, .7fr) auto; align-items: center; gap: 20px; padding: 12px 24px;
+  .st-box { container-type: size; align-self: stretch; justify-self: stretch; min-height: 0; display: grid; place-items: center; }
+  body.view-stage .st-box .stage { width: min(100cqw, 100cqh * 16 / 9); }
+  .dock { align-self: stretch; justify-self: stretch; min-height: var(--dock-min); max-height: 30vh; min-width: 0; overflow: hidden;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 24px; padding: 12px 24px;
     background: var(--panel); border-top: 1px solid var(--line); color: var(--ink); font-size: 20px; }
   .dock .cap { font-size: 18px; }
   .dock kbd { font: 600 18px/1 var(--mono); padding: 4px 7px; }
   .d-time { min-width: 150px; }
   .d-time strong { display: block; font-size: 38px; line-height: 1.05; font-weight: 650; letter-spacing: -.02em; color: var(--white); font-variant-numeric: tabular-nums; }
+  .d-time strong.paused { color: var(--muted); } /* пауза — нейтрально, без отставания (spec §10.1) */
   .d-time span { display: block; font-size: 18px; color: var(--muted); white-space: nowrap; }
   .d-bar { height: 6px; border-radius: 6px; background: var(--panel-2); overflow: hidden; margin-top: 8px; }
   .d-bar i { display: block; height: 100%; width: var(--p, 0%); background: var(--yellow); border-radius: 6px; }
-  .d-step { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 12px; min-width: 0; }
-  .dock .s-n { font: 600 18px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* строка 1 — текущий шаг (номер, иконка, текст, копирование), строка 2 — «Далее» под текстом шага */
+  .d-main { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; min-width: 0;
+    max-height: calc(30vh - 24px); overflow-y: auto; } /* шаг выше 30vh не обрезается молча: панель прокручивается */
+  .dock .s-n { display: grid; justify-items: end; gap: 6px; font: 600 18px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .d-short { display: inline-flex; align-items: center; font: 600 18px var(--sans); color: var(--ink); }
+  .dock .b8 { font-size: 18px; }
   .dock .s-ic { width: 34px; height: 34px; border-radius: 9px; }
   .dock .s-ic svg { width: 20px; height: 20px; }
-  .d-txt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0;
-    font-size: 21px; line-height: 1.3; color: var(--white); overflow-wrap: anywhere; }
+  .d-txt { min-width: 0; font-size: 21px; line-height: 1.3; color: var(--white); overflow-wrap: anywhere; }
   .d-txt.mono { font-family: var(--mono); font-size: 20px; line-height: 1.35; }
   .d-txt.url { color: var(--cyan); }
-  .d-step .d-txt { -webkit-line-clamp: 3; } /* текущий шаг — 3 строки: путь в Studio и реплику не скопировать, их надо дочитать */
-  .d-next { display: grid; gap: 4px; min-width: 0; }
-  .d-next .d-txt { font-size: 20px; color: var(--ink); }
-  .d-next .d-txt.mono { font-size: 18px; }
+  .d-txt.clip, .d-nx { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+  .d-txt.clip { -webkit-line-clamp: 3; } /* копируемое можно не дочитывать: C */
+  .d-nx-cap { grid-column: 1 / 3; justify-self: end; }
+  .d-nx { grid-column: 3 / -1; -webkit-line-clamp: 1; font-size: 20px; color: var(--ink); }
+  .d-nx.mono { font-size: 18px; }
   .dock .copy { height: 40px; min-width: 44px; margin: 0; gap: 8px; padding: 0 10px; border-radius: 9px; color: var(--white); border-color: var(--line-hi); background: var(--bg); }
   .dock .copy svg { width: 20px; height: 20px; }
   .dock .copy .ck { display: inline-block; padding: 4px 7px; font-size: 18px; }
-  .d-keys { display: grid; gap: 8px; justify-items: start; font-size: 18px; line-height: 1.3; color: var(--muted); white-space: nowrap; }
-  .d-keys kbd + kbd { margin-left: 4px; }
-  .d-keys kbd:last-child { margin-right: 6px; }
+  /* легенда клавиш; на 3 с её место занимает сообщение (announce) — тосты не ложатся на слайд */
+  .d-keys { width: 10em; font-size: 18px; line-height: 1.3; color: var(--muted); }
+  .d-legend { display: grid; gap: 8px; justify-items: start; white-space: nowrap; }
+  .d-legend kbd + kbd { margin-left: 4px; }
+  .d-legend kbd:last-child { margin-right: 6px; }
+  .d-two { display: flex; gap: 12px; } /* «N скрыть» и «? все» — одной строкой: панель не растёт */
+  .d-msg { display: none; color: var(--white); overflow-wrap: anywhere; }
+  .d-keys.on .d-legend { display: none; }
+  .d-keys.on .d-msg { display: block; }
+  /* светлая сцена: панель тоже светлая, текст — тёмные токены с контрастом ≥ 4.5:1 */
+  body.light .keys, body.light .dock { --panel: #FFFFFF; --panel-2: #ECEDF6; --bg: #F5F6FA; --line: #D3D4E4; --line-hi: #A6A4CF;
+    --ink: #26215E; --white: #17124B; --muted: #55528A; --cyan: #0B6E7D; }
+  body.light .dock .k-shell { --k: 31 128 87; } body.light .dock .k-git { --k: 47 98 181; } body.light .dock .k-url { --k: 11 110 125; }
+  body.light .dock .k-studio { --k: 85 82 138; } body.light .dock .k-say { --k: 38 33 94; } body.light .dock .k-prompt { --k: 109 76 199; }
+
+  /* ================= СПРАВКА ПО КЛАВИШАМ (?) ================= */
+  /* В зеркале её видит и зал: крупно, как панель; закрывается тем же ?, Esc или щелчком мимо */
+  .keys { max-width: min(880px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line-hi); border-radius: 14px;
+    background: var(--panel); color: var(--ink); font-size: 18px; }
+  .keys:focus-visible { outline: none; } /* showModal фокусирует само окно: рамка фокуса тут ничего не говорит */
+  .keys::backdrop { background: rgb(6 5 26 / .6); }
+  .k-box { padding: 20px 28px 26px; }
+  .keys .cap { margin: 0; font-size: 18px; }
+  .k-grid { display: grid; grid-template-columns: repeat(2, auto); gap: 0 44px; }
+  .keys h3 { margin: 18px 0 10px; font-size: 18px; font-weight: 600; color: var(--muted); }
+  .keys dl { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px 14px; margin: 0; line-height: 1.3; }
+  .keys dt { white-space: nowrap; }
+  .keys dd { margin: 0; }
+  .keys kbd { font: 600 18px/1 var(--mono); padding: 4px 7px; }
+  .keys kbd + kbd { margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -373,6 +430,39 @@
 </svg>
 <div id="app"></div>
 <div id="status" role="status" aria-live="polite"></div>
+<dialog id="keys" class="keys" aria-labelledby="keys-cap">
+  <div class="k-box">
+    <h2 class="cap" id="keys-cap">Клавиши</h2>
+    <div class="k-grid">
+      <section>
+        <h3>Везде</h3>
+        <dl>
+          <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>блок назад / вперёд</dd>
+          <dt><kbd>1</kbd><kbd>2</kbd></dt><dd>демо A / B</dd>
+          <dt><kbd>T</kbd></dt><dd>таймер: старт / пауза</dd>
+          <dt><kbd>R</kbd></dt><dd>сброс таймера блока; R или T за 3 с — отмена</dd>
+          <dt><kbd>F</kbd></dt><dd>полный экран</dd>
+          <dt><kbd>L</kbd></dt><dd>светлая / тёмная сцена</dd>
+          <dt><kbd>?</kbd></dt><dd>эта справка; <kbd>Esc</kbd> — закрыть</dd>
+        </dl>
+      </section>
+      <section>
+        <h3>Консоль и панель (N)</h3>
+        <dl>
+          <dt><kbd>J</kbd></dt><dd>следующий шаг (или <kbd>Space</kbd>)</dd>
+          <dt><kbd>K</kbd></dt><dd>предыдущий шаг</dd>
+          <dt><kbd>C</kbd></dt><dd>копировать шаг</dd>
+          <dt><kbd>S</kbd></dt><dd>короткая версия (8′)</dd>
+        </dl>
+        <h3>Только сцена</h3>
+        <dl>
+          <dt><kbd>P</kbd></dt><dd>консоль в новом окне</dd>
+          <dt><kbd>N</kbd></dt><dd>панель для зеркала</dd>
+        </dl>
+      </section>
+    </div>
+  </div>
+</dialog>
 <script src="./content.js"></script>
 <script src="./core.js"></script>
 <script src="./app.js"></script>

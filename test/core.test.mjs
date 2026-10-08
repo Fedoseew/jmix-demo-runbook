@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadScript } from './load.mjs';
+import { loadScript, readText } from './load.mjs';
 
 const { Runbook } = loadScript('core.js');
 // Объекты из node:vm живут в другом realm: deepStrictEqual сравнивает прототипы,
@@ -18,7 +18,7 @@ test('defaultState — демо A, блок 0, таймер стоит, шаго
   assert.deepEqual(plain(Runbook.defaultState()), {
     demo: 'a', index: 0,
     timer: { running: false, startedAt: null, elapsedBefore: 0 },
-    elapsed: {}, steps: {}, short: false, light: false,
+    elapsed: {}, steps: {}, short: false, light: false, indexByDemo: {},
   });
 });
 
@@ -36,6 +36,7 @@ test('loadState дополняет частично сохранённое со�
   assert.deepEqual(plain(s.steps), {});
   assert.equal(s.short, false);
   assert.equal(s.light, false);
+  assert.deepEqual(plain(s.indexByDemo), {});
   assert.equal('notes' in s, false);
 });
 
@@ -247,4 +248,92 @@ test('viewOf: консоль только по ?view=console', () => {
   assert.equal(Runbook.viewOf(''), 'stage');
   assert.equal(Runbook.viewOf('?view=presenter'), 'stage');
   assert.equal(Runbook.viewOf('?view=consoles'), 'stage');
+});
+
+test('loadState: позиция по демо — только a/b и неотрицательные целые', () => {
+  const s = Runbook.loadState({ getItem: () => JSON.stringify({ indexByDemo: { a: 3, b: -1, c: 2 } }) });
+  assert.deepEqual(plain(s.indexByDemo), { a: 3 });
+  const t = Runbook.loadState({ getItem: () => JSON.stringify({ indexByDemo: { b: 4.5, a: '2' } }) });
+  assert.deepEqual(plain(t.indexByDemo), {});
+});
+
+const A1 = { id: 'A1', minutes: 10 }, A2 = { id: 'A2', minutes: 15 }, PRE = { id: 'A-pre', minutes: 0, pre: true };
+const T0 = 1_000_000;
+const running = (startedAt, elapsedBefore = 0) => ({ running: true, startedAt, elapsedBefore });
+const paused = elapsedBefore => ({ running: false, startedAt: null, elapsedBefore });
+
+test('leaveBlock: идущий таймер не встаёт при переходе, время блока уходит в факт', () => {
+  const s = { ...Runbook.defaultState(), timer: running(T0) };
+  assert.deepEqual(plain(Runbook.leaveBlock(s, A1, A2, T0 + 600_000)),
+    { elapsed: { A1: 600 }, timer: running(T0 + 600_000) });
+});
+
+test('leaveBlock: на блок, где уже был факт, таймер идёт дальше от него', () => {
+  const s = { ...Runbook.defaultState(), elapsed: { A1: 600 }, timer: running(T0, 0) };
+  assert.deepEqual(plain(Runbook.leaveBlock(s, A2, A1, T0 + 60_000)),
+    { elapsed: { A1: 600, A2: 60 }, timer: running(T0 + 60_000, 600) });
+});
+
+test('leaveBlock: пауза сохраняется — встаёт только по T', () => {
+  const s = { ...Runbook.defaultState(), elapsed: { A1: 300, A2: 90 }, timer: paused(300) };
+  assert.deepEqual(plain(Runbook.leaveBlock(s, A1, A2, T0)),
+    { elapsed: { A1: 300, A2: 90 }, timer: paused(90) });
+});
+
+const DEMO_A = [PRE, A1, A2];
+
+test('leaveBlock: с заставки на первый блок таймер стартует, на заставке стоит', () => {
+  const s = Runbook.defaultState();
+  assert.deepEqual(plain(Runbook.leaveBlock(s, PRE, A1, T0, DEMO_A)), { elapsed: {}, timer: running(T0) });
+  const r = { ...s, timer: running(T0) };
+  assert.deepEqual(plain(Runbook.leaveBlock(r, A1, PRE, T0 + 120_000, DEMO_A)),
+    { elapsed: { A1: 120 }, timer: paused(0) });
+});
+
+test('leaveBlock: с заставки щелчком по повестке не на первый блок — таймер стоит, факта нет', () => {
+  const s = Runbook.defaultState();
+  const r = Runbook.leaveBlock(s, PRE, A2, T0, DEMO_A);
+  assert.deepEqual(plain(r), { elapsed: {}, timer: paused(0) });
+  const back = Runbook.leaveBlock({ ...s, ...r }, A2, PRE, T0 + 120_000, DEMO_A);
+  assert.deepEqual(plain(back), { elapsed: {}, timer: paused(0) });
+});
+
+test('leaveBlock: 2 → 1 через заставку другого демо паузу не снимает', () => {
+  const A6 = { id: 'A6', minutes: 12 }, BPRE = { id: 'B-pre', minutes: 0, pre: true }, B1 = { id: 'B1', minutes: 5 };
+  const s = { ...Runbook.defaultState(), elapsed: { A6: 300 }, timer: paused(300) };
+  const onB = { ...s, ...Runbook.leaveBlock(s, A6, BPRE, T0, [PRE, A1, A6]) };
+  assert.deepEqual(plain(Runbook.leaveBlock(onB, BPRE, A6, T0 + 5_000, [BPRE, B1])),
+    { elapsed: { A6: 300 }, timer: paused(300) });
+});
+
+test('leaveBlock: блок, пролистанный быстрее SKIP_SEC, факта не получает и в темп не идёт', () => {
+  const s = { ...Runbook.defaultState(), timer: running(T0) };
+  const r = Runbook.leaveBlock(s, A1, A2, T0 + (Runbook.SKIP_SEC - 1) * 1000);
+  assert.deepEqual(plain(r.elapsed), {});
+  assert.equal(Runbook.pace([A1, A2], 1, r.elapsed, 0).plan, 0);
+  const stale = { ...s, elapsed: { A1: 5 }, timer: paused(5) };
+  assert.deepEqual(plain(Runbook.leaveBlock(stale, A1, A2, T0).elapsed), {});
+});
+
+test('typo: цепочка коротких слов держится вместе', () => {
+  assert.equal(Runbook.typo('и в доме'), 'и\u00a0в\u00a0доме');
+  assert.equal(Runbook.typo('(в базе)'), '(в\u00a0базе)');
+  assert.equal(Runbook.typo('дом и в нём'), 'дом и\u00a0в\u00a0нём');
+});
+
+test('core.js без lookbehind: Safari до 16.4 не должен терять весь файл', () => {
+  assert.ok(!/\(\?<[=!]/.test(readText('core.js')), 'в core.js есть lookbehind');
+});
+
+test('typo: слово через дефис не рвётся на строке', () => {
+  assert.equal(Runbook.typo('новой CRM-системы'), 'новой <span class="nw">CRM-системы</span>');
+  assert.equal(Runbook.typo('в ИИ-сгенерированный JPQL'), 'в\u00a0<span class="nw">ИИ-сгенерированный</span> JPQL');
+  assert.equal(Runbook.typo('2 — 3'), '2\u00a0— 3');
+});
+
+test('splitLead: короткое первое предложение длинного абзаца становится лидом (C12)', () => {
+  const long = 'x'.repeat(400);
+  assert.equal(Runbook.splitLead(`Контроль времени. На 7-й минуте ${long}`)[0], 'Контроль времени.');
+  assert.equal(Runbook.splitLead(`Инспекции, каждый раз Undo. ${long}`)[0], 'Инспекции, каждый раз Undo.');
+  assert.equal(Runbook.splitLead(`Liquibase ↔ entity. ${long}`)[0], 'Liquibase ↔ entity.');
 });

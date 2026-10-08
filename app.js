@@ -7,7 +7,7 @@
   const STATUS_MS = 3000;
   const UNDO_MS = 3000;
   const TICK_MS = 500;
-  const STAGE_FONT_START_CQW = 2.35;
+  const STAGE_FONT_START_CQW = 2.5; // 32px при 1280; плотные слайды (A0, B0) ужимает fitStage
   const STAGE_FONT_STEP_CQW = 0.04;
   const CLOCK_MS = 30000;
   const COPY_FLASH_MS = 1400;
@@ -16,7 +16,13 @@
   const STEP_TOP_GAP_PX = 6;
   const MONO_KINDS = new Set(['shell', 'git', 'url']);
   const DOCK_KEY = 'jmix-runbook/dock';
+  const BEAT_KEY = 'jmix-runbook/stage'; // сцена раз в BEAT_MS пишет сюда время: консоль видит, открыта ли она
+  const BEAT_MS = 2000;
+  const BEAT_STALE_MS = 3 * BEAT_MS;
+  const HINT_MS = 2500;  // подсказка клавиш и курсор на сцене — столько после загрузки и движения мыши
   const NO_CONTENT = 'content.js не загрузился — откройте index.html из папки runbook';
+  const NO_CORE = 'core.js не загрузился — откройте index.html из папки runbook в свежем Chrome, Edge, Firefox или Safari';
+  const NO_STORAGE = 'localStorage недоступен — второе окно не синхронизируется, F5 вернёт к началу';
 
   // ---------------- состояние и хелперы ----------------
   let storage = null;
@@ -26,8 +32,9 @@
   let tick = null;
   let clockTick = null;
   let statusTimer = null;
-  let undoReset = null;   // { id, sec, until } — второе R в течение UNDO_MS возвращает сброшенное время
-  const lastIndex = {};   // ponytail: позиция в другом демо живёт до перезагрузки, формат State не трогаем
+  let hintTimer = null;
+  let undoReset = null;   // { id, timer, fact, until } — R или T в течение UNDO_MS возвращают блок как было
+  let checks = {};        // отметки чек-листа по id блока: живут в окне до F5 (spec §10.5 — не сохраняем)
 
   const $ = id => document.getElementById(id);
   const two = n => String(n).padStart(2, '0');
@@ -56,12 +63,18 @@
 
   function commit() { Runbook.saveState(storage, state); }
 
-  function announce(msg) {
-    const s = $('status');
+  // Сцену видит зал: с панелью зеркала сообщение встаёт в панель вместо легенды клавиш, без панели сцена
+  // молчит — кроме того, без чего не обойтись при подготовке (always: окно заблокировано, нет localStorage).
+  function announce(msg, always = false) {
+    const inDock = view === 'stage' && dockOpen;
+    if (view === 'stage' && !inDock && !always) return;
+    const s = inDock ? q('[data-dock-msg]') : $('status');
+    const host = inDock ? q('.d-keys') : s;
+    if (!s) return;
     s.textContent = msg;
-    s.classList.add('on');
+    host.classList.add('on');
     clearTimeout(statusTimer);
-    statusTimer = setTimeout(() => s.classList.remove('on'), STATUS_MS);
+    statusTimer = setTimeout(() => host.classList.remove('on'), STATUS_MS);
   }
 
   // ---------------- сцена: одна разметка для зала (и для миниатюры консоли) ----------------
@@ -87,7 +100,7 @@
       <svg class="st-wm" viewBox="0 0 48 48" aria-hidden="true"><use href="#logo-mark"/></svg>
       <div class="st-inner">${inner}</div>
       <div class="st-foot"><div class="st-strip" aria-hidden="true">${strip}</div></div>
-      ${main ? '<div class="st-hint"><kbd>P</kbd> консоль · <kbd>N</kbd> панель · <kbd>L</kbd> светлая сцена</div>' : ''}
+      ${main ? '<div class="st-hint"><kbd>P</kbd> консоль · <kbd>N</kbd> панель · <kbd>F</kbd> полный экран · <kbd>L</kbd> светлая сцена · <kbd>?</kbd> все клавиши</div>' : ''}
     </section>`;
   }
 
@@ -168,7 +181,7 @@
         <div class="t-row"><span class="cap">Чек-лист</span><span class="t-live wait">таймер стоит</span></div>
         <div class="t-big"><strong data-t="checked">0/${b.slide.length}</strong><span>пунктов</span></div>
         <div class="t-bar ok" data-t="bar"><i></i></div>
-        <p class="t-idle">Зал видит заставку. Таймер стартует с первого блока: ${t.core} мин + ${t.all - t.core} опц.</p></section>`;
+        <p class="t-idle">Зал видит заставку. Таймер стартует сам при переходе к первому блоку и встаёт только по <kbd>T</kbd>: ${t.core} мин + ${t.all - t.core} опц.</p></section>`;
     }
     return `<section class="panel timer" aria-label="Таймер блока">
       <div class="t-row"><span class="cap">Блок ${Runbook.esc(b.id)} · осталось</span><span class="t-live" data-t="live">идёт</span></div>
@@ -184,7 +197,7 @@
   function nextHTML() {
     const n = blocks()[state.index + 1];
     if (!n) {
-      return `<section class="panel next" aria-label="Следующий блок"><div class="t-row"><span class="cap">Далее</span></div><div class="nx-title">Это последний блок</div>
+      return `<section class="panel next last" aria-label="Следующий блок"><div class="t-row"><span class="cap">Далее</span></div><div class="nx-title">Это последний блок</div>
         <div class="nx-head">Финал демо — вопросы и контакты</div></section>`;
     }
     const first = Runbook.classifyActions(n.actions).slice(0, NEXT_STEPS_SHOWN).map((a, i) => {
@@ -203,7 +216,7 @@
 
   function notesHTML(b) {
     const checklist = b.pre
-      ? `<ul class="pf-list">${b.slide.map(t => `<li><label><input type="checkbox"><span>${Runbook.esc(t)}</span></label></li>`).join('')}</ul>`
+      ? `<ul class="pf-list">${b.slide.map((t, i) => `<li><label><input type="checkbox"${checks[b.id]?.[i] ? ' checked' : ''}><span>${Runbook.esc(t)}</span></label></li>`).join('')}</ul>`
       : '';
     const notes = b.notes.map((t, i) => {
       const [lead, rest] = Runbook.splitLead(t);
@@ -237,7 +250,7 @@
       : '';
     return `<section class="panel col acts" aria-label="Действия">
       <div class="col-head"><h2>Действия</h2><span class="count">шаг <b data-stepno>1</b> / ${list.length}</span>
-        <span class="hint"><kbd>J</kbd><kbd>K</kbd> шаг</span><span class="spacer"></span>${toggle}</div>
+        <span class="hint"><kbd>J</kbd><kbd>K</kbd> шаг · <kbd>Space</kbd> = <kbd>J</kbd></span><span class="spacer"></span>${toggle}</div>
       <div class="col-body"><ol class="steps">${items}</ol></div></section>`;
   }
 
@@ -248,14 +261,16 @@
       <header class="c-top">
         <div class="c-brand">${logo('')}<span class="cap">Консоль докладчика</span></div>
         <nav class="seg-ctl" aria-label="Демо">${tabs}</nav>
-        <span class="c-pill"><i></i>Сцена<span>· второй экран</span></span>
-        <div class="c-keys"><span><kbd>←</kbd><kbd>→</kbd> блок</span><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>C</kbd> копировать</span><span><kbd>T</kbd> таймер</span><span><kbd>1</kbd><kbd>2</kbd> демо</span><span class="c-clock" data-clock>${clockText()}</span></div>
+        <span class="c-pill" data-link><i></i>Сцена<span data-link-text></span></span>
+        <div class="c-keys"><span><kbd>←</kbd><kbd>→</kbd> блок</span><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>C</kbd> копия</span><span><kbd>T</kbd> таймер</span><span><kbd>R</kbd> сброс</span><span><kbd>1</kbd><kbd>2</kbd> демо</span><span><kbd>F</kbd> экран</span><span><kbd>L</kbd> свет</span></div>
+        <p class="c-away">Окно не в фокусе — клавиши уходят в другое окно; щёлкните по консоли</p>
+        <span class="c-clock" data-clock>${clockText()}</span>
       </header>
       ${agendaHTML()}
       <div class="c-main">
         <div class="c-left">
           ${timerHTML(b)}
-          <section class="panel now-shot" aria-label="Сейчас на экране"><div class="t-row"><span class="cap">На экране зала</span><span class="t-live">в эфире</span></div>${stageHTML(false)}<div class="ns-title">${Runbook.esc(b.pre ? 'Заставка · скоро начинаем' : b.title)}</div></section>
+          <section class="panel now-shot" aria-label="Сейчас на экране"><div class="t-row"><span class="cap">На экране зала</span><span class="t-live" data-onair></span></div>${stageHTML(false)}<div class="ns-title">${Runbook.esc(b.pre ? 'Заставка · скоро начинаем' : b.title)}</div></section>
           ${nextHTML()}
         </div>
         ${notesHTML(b)}
@@ -305,7 +320,11 @@
   // ---------------- копирование ----------------
   async function copyStep(bi, si) {
     const step = Runbook.classifyActions(blocks()[bi]?.actions || [])[si];
-    if (!step || !Runbook.isCopyable(step.kind)) return;
+    if (!step) return;
+    if (!Runbook.isCopyable(step.kind)) {
+      announce(`Шаг не копируется — ${step.kind === 'say' ? 'это реплика' : 'это действие в Studio'}`);
+      return;
+    }
     let ok = await Runbook.copyText(step.text, navigator.clipboard);
     if (!ok) ok = copyViaTextarea(step.text);
     announce(ok ? `Скопировано: шаг ${two(si + 1)}` : 'Буфер обмена недоступен — выделите текст вручную');
@@ -338,63 +357,94 @@
   }
 
   // ---------------- второе окно ----------------
+  // Подсказку «что дальше» показывает сама консоль (её видит только докладчик), сцена говорит лишь об ошибке.
   function openConsole() {
     let w = null;
     try { w = window.open('?view=console', 'jmix-runbook-console', 'popup,width=1440,height=900'); } catch (_) { w = null; }
-    announce(w ? 'Консоль открыта — перетащите сцену на проектор и нажмите F'
-               : 'Браузер заблокировал окно — откройте index.html?view=console вручную');
+    if (!w) announce('Браузер заблокировал окно — откройте index.html?view=console вручную', true);
+  }
+
+  function openedFromStage() {
+    try { return Boolean(window.opener); } catch (_) { return false; }
   }
 
   // ---------------- панель для зеркала (клавиша N на сцене) ----------------
   // Скелет; время рисует paintTimer, шаги — paintSteps, поэтому панель не перерисовывается целиком.
+  // Текущий шаг и «Далее» — строками одной сетки: тексту шага достаётся почти вся ширина панели.
   function dockHTML() {
     if (view !== 'stage' || !dockOpen) return '';
     const b = block();
     const time = b.pre
       ? `<strong>–:––</strong><span>таймер стоит · ${Runbook.esc(b.id)}</span>`
-      : `<strong data-dock-left></strong><span>осталось · ${Runbook.esc(b.id)}</span><div class="d-bar"><i></i></div>`;
+      : `<strong data-dock-left></strong><span data-dock-state></span><div class="d-bar"><i></i></div>`;
+    const shortKey = Runbook.hasShort(steps()) ? '<span><kbd>S</kbd> 8′</span>' : '';
     return `<aside class="dock" aria-label="Панель докладчика">
       <div class="d-time">${time}</div>
-      <div class="d-step" data-dock-step></div>
-      <div class="d-next" data-dock-next></div>
-      <div class="d-keys"><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>N</kbd> скрыть</span></div>
+      <div class="d-main" data-dock-main></div>
+      <div class="d-keys"><span class="d-legend"><span><kbd>J</kbd><kbd>K</kbd> шаг</span>${shortKey}<span class="d-two"><span><kbd>N</kbd> скрыть</span><span><kbd>?</kbd> все</span></span></span><span class="d-msg" data-dock-msg aria-live="polite"></span></div>
     </aside>`;
   }
 
-  const dockText = a => MONO_KINDS.has(a.kind)
-    ? `<span class="d-txt mono${a.kind === 'url' ? ' url' : ''}">${Runbook.esc(a.text)}</span>`
-    : `<span class="d-txt">${arrows(Runbook.esc(a.text))}</span>`;
+  // Бейдж «8′» — как в консоли: только у шагов, которые не терминал, git или ссылка.
+  function dockText(a, cls) {
+    if (MONO_KINDS.has(a.kind)) return `<span class="d-txt ${cls} mono${a.kind === 'url' ? ' url' : ''}">${Runbook.esc(a.text)}</span>`;
+    const badge = a.short ? '<span class="b8">8′</span>' : '';
+    return `<span class="d-txt ${cls}">${badge}${arrows(Runbook.esc(a.text))}</span>`;
+  }
 
-  function dockStepHTML() {
-    const list = steps(), cur = stepIndex(), a = list[cur];
+  // Текущий шаг не обрезается: путь в Studio и реплику не скопировать, их надо дочитать. Копируемое — до 3 строк.
+  function dockStepHTML(cur = stepIndex()) {
+    const list = steps(), a = list[cur];
     if (!a) return '';
-    return `<span class="s-n">${two(cur + 1)} / ${two(list.length)}</span>
-      <span class="s-ic k-${a.kind}" title="${Runbook.actionLabel(a.kind)}">${icon('i-' + a.kind)}</span>${dockText(a)}
-      ${Runbook.isCopyable(a.kind) ? copyBtn(state.index, cur, true) : ''}`;
+    const copyable = Runbook.isCopyable(a.kind);
+    const short = shortOn() ? '<span class="d-short"><span class="b8">8′</span>короткая</span>' : '';
+    return `<span class="s-n">${two(cur + 1)} / ${two(list.length)}${short}</span>
+      <span class="s-ic k-${a.kind}" title="${Runbook.actionLabel(a.kind)}">${icon('i-' + a.kind)}</span>${dockText(a, copyable ? 'd-cur clip' : 'd-cur')}
+      ${copyable ? copyBtn(state.index, cur, true) : '<span></span>'}`;
   }
 
   // Следующий шаг (с учётом короткой версии); шагов не осталось — первый блок дальше.
-  function dockNextHTML() {
-    const list = steps(), cur = stepIndex();
+  function dockNextHTML(cur = stepIndex()) {
+    const list = steps();
     const i = Runbook.nextStep(list, cur, 1, shortOn());
     const n = blocks()[state.index + 1];
-    const body = i !== cur ? dockText(list[i])
-      : `<span class="d-txt">${n ? `→ ${Runbook.esc(n.id)} · ${Runbook.esc(n.title)}` : 'Это последний блок'}</span>`;
-    return `<span class="cap">Далее</span>${body}`;
+    const body = i !== cur ? dockText(list[i], 'd-nx')
+      : `<span class="d-txt d-nx">${n ? `→ ${Runbook.esc(n.id)} · ${Runbook.esc(n.title)}` : 'Это последний блок'}</span>`;
+    return `<span class="cap d-nx-cap">Далее</span>${body}`;
   }
 
   function paintDock() {
-    const step = q('[data-dock-step]');
-    if (!step) return;
-    step.innerHTML = dockStepHTML();
-    q('[data-dock-next]').innerHTML = dockNextHTML();
+    const main = q('[data-dock-main]');
+    if (main) main.innerHTML = dockStepHTML() + dockNextHTML();
+  }
+
+  // Высота панели — по самому длинному шагу блока (не выше 30vh): слайд в зеркале не прыгает на каждом J,
+  // а меняет размер только вместе со сменой блока.
+  function sizeDock() {
+    const dock = q('.dock'), main = q('[data-dock-main]');
+    if (!dock || !main) return;
+    dock.style.minHeight = '';
+    const tallest = steps().reduce((max, _, i) => {
+      main.innerHTML = dockStepHTML(i) + dockNextHTML(i);
+      return Math.max(max, dock.getBoundingClientRect().height);
+    }, 0);
+    dock.style.minHeight = `${Math.ceil(tallest)}px`;
+  }
+
+  function relayout() {
+    sizeDock();
+    paintDock();
+    fitAll();
   }
 
   function paintDockTimer(pct) {
     const left = q('[data-dock-left]');
     if (!left) return; // панель закрыта или блок без таймера
     // Зеркало видит зал: без минуса и розового — перерасход показывает только консоль (spec §10.1).
+    // Пауза — нейтрально: приглушённые цифры и подпись, чтобы забытый T был заметен.
     left.textContent = Runbook.fmt(Math.max(0, Runbook.remaining(block().minutes, live())));
+    left.classList.toggle('paused', !state.timer.running);
+    setText('[data-dock-state]', `${state.timer.running ? 'осталось' : 'пауза'} · ${block().id}`);
     q('.d-bar').style.setProperty('--p', `${pct}%`);
   }
 
@@ -409,12 +459,18 @@
   }
 
   // ---------------- рендер ----------------
+  // Светлая сцена перекрашивает и окно вокруг слайда (полосы, панель зеркала), консоль всегда тёмная.
   function render() {
-    document.body.className = 'view-' + view + (dockOpen ? ' dock-open' : '');
-    $('app').innerHTML = view === 'console' ? consoleHTML() : stageHTML(true) + dockHTML();
+    const lightStage = view === 'stage' && state.light;
+    document.body.className = 'view-' + view + (dockOpen ? ' dock-open' : '') + (lightStage ? ' light' : '');
+    // с панелью сцена живёт в контейнере остатка высоты: панель растёт по тексту шага, слайд ужимается в 16:9
+    const stage = dockOpen ? `<div class="st-box">${stageHTML(true)}</div>${dockHTML()}` : stageHTML(true);
+    $('app').innerHTML = view === 'console' ? consoleHTML() : stage;
+    sizeDock();
     fitAll();
     paintSteps(false);
     paintTimer();
+    paintStageLink();
     ensureTick();
     ensureClock();
     document.title = `${block().id} · ${view === 'console' ? 'Консоль' : 'Сцена'} — Jmix Runbook`;
@@ -430,7 +486,7 @@
   const q = sel => $('app').querySelector(sel);
   const setText = (sel, text) => { const el = q(sel); if (el) el.textContent = text; };
 
-  // Чек-лист живёт в DOM: число отмеченных считаем по чекбоксам.
+  // Чек-лист живёт в DOM (и в checks до F5): число отмеченных считаем по чекбоксам.
   function paintChecklist() {
     const boxes = [...$('app').querySelectorAll('.pf-list input')];
     const done = boxes.filter(x => x.checked).length;
@@ -473,15 +529,44 @@
     paintAgendaCurrent(b, sec, pct);
     if (b.pre) { paintChecklist(); return; }
     const left = Runbook.remaining(b.minutes, sec);
-    setText('[data-t="live"]', state.timer.running ? 'идёт' : 'пауза');
-    q('[data-t="live"]').classList.toggle('wait', !state.timer.running);
+    const paused = !state.timer.running;
+    setText('[data-t="live"]', paused ? 'пауза — T' : 'идёт');
+    q('[data-t="live"]').classList.toggle('wait', paused);
     setText('[data-t="left"]', Runbook.fmt(left));
     q('[data-t="left"]').classList.toggle('late', left < 0);
+    q('[data-t="left"]').classList.toggle('paused', paused);
     q('[data-t="bar"]').style.setProperty('--p', `${pct}%`);
+    q('[data-t="bar"]').classList.toggle('late', left < 0);
     paintPace(sec);
   }
 
   const paintClock = () => setText('[data-clock]', clockText());
+
+  // «Сцена · на связи» — только пока окно сцены пишет пульс; иначе честно «не найдена».
+  function paintStageLink() {
+    const pill = q('[data-link]');
+    if (!pill) return;
+    let beat = 0;
+    try { beat = Number(storage.getItem(BEAT_KEY)) || 0; } catch (_) { beat = 0; }
+    const alive = Date.now() - beat < BEAT_STALE_MS;
+    pill.classList.toggle('off', !alive);
+    setText('[data-link-text]', alive ? '· на связи' : ' не найдена');
+    setText('[data-onair]', alive ? 'в эфире' : 'нет сцены');
+    q('[data-onair]').classList.toggle('wait', !alive);
+  }
+
+  function beat() {
+    try { storage.setItem(BEAT_KEY, String(Date.now())); } catch (_) { /* без localStorage консоль сцену не увидит */ }
+  }
+
+  // Подсказка клавиш и курсор на сцене — пока мышью двигают, и HINT_MS после; в полном экране курсор прячется.
+  function showPointer() {
+    document.documentElement.classList.add('pointer');
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => document.documentElement.classList.remove('pointer'), HINT_MS);
+  }
+
+  const paintFocus = () => document.documentElement.classList.toggle('away', !document.hasFocus());
 
   function ensureClock() {
     if (view === 'console' && !clockTick) clockTick = setInterval(paintClock, CLOCK_MS);
@@ -502,52 +587,56 @@
   // Таймер и факт меняются без render(): в консоли он схлопнул бы раскрытые заметки.
   function commitTimer() { commit(); paintTimer(); ensureTick(); }
 
+  // R без модификатора легко нажать случайно: R или T в течение UNDO_MS возвращают время и ход таймера как было.
+  const canUndo = id => Boolean(undoReset) && undoReset.id === id && Date.now() < undoReset.until;
+
+  function undoResetTimer() {
+    const { id, timer, fact } = undoReset;
+    undoReset = null;
+    state = { ...state, elapsed: fact > 0 ? withElapsed(id, fact) : withoutElapsed(id), timer };
+    announce('Сброс отменён');
+    commitTimer();
+  }
+
   function toggleTimer() {
     if (block().minutes === 0) return;
-    undoReset = null; // после T отмена сброса затёрла бы новое время блока
+    if (canUndo(block().id)) { undoResetTimer(); return; } // T сразу после R — «верни как было», а не старт с нуля
     if (state.timer.running) stopTimerIntoElapsed();
     else state = { ...state, timer: { running: true, startedAt: Date.now(), elapsedBefore: state.elapsed[block().id] || 0 } };
     commitTimer();
   }
 
-  // R без модификатора легко нажать случайно — повторное R в течение UNDO_MS возвращает время блока.
   function resetTimer() {
-    const b = block();
-    if (b.minutes === 0) return;
-    const id = b.id;
-    const now = Date.now();
-    if (undoReset && undoReset.id === id && now < undoReset.until) {
-      const { sec } = undoReset;
-      undoReset = null;
-      state = { ...state, elapsed: sec > 0 ? withElapsed(id, sec) : state.elapsed, timer: idleTimer(sec) };
-      announce('Сброс отменён');
-    } else {
-      undoReset = { id, sec: Math.round(live()), until: now + UNDO_MS };
-      state = { ...state, elapsed: withoutElapsed(id), timer: idleTimer(0) };
-      announce('Таймер блока сброшен — R ещё раз в течение 3 с вернёт время');
-    }
+    const { id, minutes } = block();
+    if (minutes === 0) return;
+    if (canUndo(id)) { undoResetTimer(); return; }
+    undoReset = { id, timer: state.timer, fact: state.elapsed[id], until: Date.now() + UNDO_MS };
+    state = { ...state, elapsed: withoutElapsed(id), timer: idleTimer(0) };
+    announce('Таймер блока сброшен — R или T в течение 3 с вернёт время');
     commitTimer();
   }
 
   // ---------------- навигация ----------------
+  // Таймер встаёт только по T: при переходе идущий идёт дальше, с заставки на первый блок стартует сам (Runbook.leaveBlock).
   function moveTo(patch) {
-    stopTimerIntoElapsed();
-    state = { ...state, ...patch };
-    state = { ...state, timer: idleTimer(state.elapsed[block().id] || 0) };
+    const next = { ...state, ...patch };
+    const to = DEMOS[next.demo].blocks[next.index];
+    state = { ...next, ...Runbook.leaveBlock(state, block(), to, Date.now(), blocks()) };
     commit();
     render();
   }
 
   function go(i) {
     const next = Runbook.clampIndex(i, blocks().length);
-    if (next === state.index) return; // →/← на крайнем блоке не должны ставить таймер на паузу
+    if (next === state.index) return; // →/← на крайнем блоке ничего не меняют
     moveTo({ index: next });
   }
 
+  // Позиция в каждом демо — в общем состоянии: случайное 2 → 1 возвращает на тот же блок из любого окна.
   function setDemo(key) {
     if (state.demo === key) return;
-    lastIndex[state.demo] = state.index;
-    moveTo({ demo: key, index: Runbook.clampIndex(lastIndex[key] ?? state.index, DEMOS[key].blocks.length) });
+    const indexByDemo = { ...state.indexByDemo, [state.demo]: state.index };
+    moveTo({ demo: key, index: Runbook.clampIndex(indexByDemo[key] ?? 0, DEMOS[key].blocks.length), indexByDemo });
   }
 
   // ---------------- клавиши и синхронизация окон ----------------
@@ -557,12 +646,13 @@
     Space: () => moveStep(1),
     KeyK: () => moveStep(-1),
     KeyC: () => copyStep(state.index, stepIndex()),
+    KeyS: toggleShort,
   };
-  const CONSOLE_KEYS = { ...STEP_KEYS, KeyS: toggleShort };
-  // шаги и копирование — в консоли и на сцене с открытой панелью; короткая версия — только в консоли
-  const viewKeys = () => (view === 'console' ? CONSOLE_KEYS : dockOpen ? STEP_KEYS : {});
+  // шаги, копирование и короткая версия — в консоли и на сцене с открытой панелью
+  const viewKeys = () => (view === 'console' || dockOpen ? STEP_KEYS : {});
 
   function onKey(e) {
+    if (e.repeat) return; // зажатая → пролетала бы блоки, зажатая R — переключала бы сброс и отмену
     if (!Runbook.shouldHandleKey(e) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.code === 'Space' && e.target.closest?.('button, summary, input, a')) return;
     const action = viewKeys()[e.code];
@@ -582,9 +672,18 @@
       case 'KeyP': if (view !== 'stage') return; openConsole(); break;
       case 'KeyN': if (view !== 'stage') return; toggleDock(); break;
       case 'KeyL': state = { ...state, light: !state.light }; commit(); render(); break;
+      case 'Slash': toggleKeys(); break;
       default: return;
     }
     e.preventDefault();
+  }
+
+  // Справка «?» (Shift+/ или просто /) — все клавиши: в зеркале консоли нет, а подсказка сцены и легенда панели короткие.
+  // Esc закрывает <dialog> сам, щелчок мимо окна — onClick.
+  function toggleKeys() {
+    const d = $('keys');
+    if (!d) return;
+    if (d.open) d.close(); else d.showModal();
   }
 
   function toggleNotes(button) {
@@ -597,12 +696,13 @@
   function onClick(e) {
     // Заметка (summary) и ссылка в фокусе после щелчка мышью тоже перехватили бы Space; blur() не отменяет ни раскрытие заметки, ни переход по ссылке.
     if (e.detail > 0) e.target.closest('summary, a')?.blur();
+    if (e.target === $('keys')) { e.target.close(); return; } // щелчок по фону справки: содержимое — в .k-box
     const t = e.target.closest('[data-go],[data-demo],[data-copy],[data-expand],[data-short],[data-step]');
     if (!t || e.target.closest('a')) return;
     const d = t.dataset;
     if (d.go !== undefined) go(Number(d.go));
     else if (d.demo !== undefined) setDemo(d.demo);
-    else if (d.copy !== undefined) copyStep(...d.copy.split(':').map(Number));
+    else if (d.copy !== undefined) copyClicked(...d.copy.split(':').map(Number));
     else if (d.short !== undefined) toggleShort();
     else if (d.step !== undefined) setStep(Number(d.step));
     else toggleNotes(t);
@@ -610,9 +710,16 @@
     if (e.detail > 0) t.blur();
   }
 
+  // Скопированный шаг своего блока становится текущим: J идёт дальше от него, панель и «Далее» не отстают.
+  function copyClicked(bi, si) {
+    if (bi === state.index) setStep(si);
+    copyStep(bi, si);
+  }
+
   // Чекбокс в фокусе глушит все клавиши (shouldHandleKey): после щелчка мышью отдаём фокус обратно.
   function onChange(e) {
     if (!e.target.matches('.pf-list input')) return;
+    checks = { ...checks, [block().id]: [...$('app').querySelectorAll('.pf-list input')].map(x => x.checked) };
     paintChecklist();
     if (!e.target.matches(':focus-visible')) e.target.blur();
   }
@@ -628,8 +735,35 @@
   }
 
   // ---------------- инициализация ----------------
+  function storageWorks() {
+    try {
+      const k = `${Runbook.STORAGE_KEY}/probe`;
+      window.localStorage.setItem(k, '1');
+      window.localStorage.removeItem(k);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function initStage() {
+    beat();
+    setInterval(beat, BEAT_MS);
+    document.addEventListener('mousemove', showPointer);
+    showPointer();
+  }
+
+  function initConsole() {
+    setInterval(paintStageLink, BEAT_MS);
+    window.addEventListener('focus', paintFocus);
+    window.addEventListener('blur', paintFocus);
+    paintFocus();
+    if (openedFromStage()) announce('Консоль открыта — окно сцены перетащите на проектор и нажмите в нём F');
+  }
+
   function init() {
-    // content.js правится руками: без этой проверки синтаксическая ошибка в нём даёт пустой тёмный экран.
+    // core.js и content.js — без этих проверок ошибка в них (правка руками, старый браузер) даёт пустой тёмный экран.
+    if (!globalThis.Runbook) { document.body.textContent = NO_CORE; return; }
     if (!globalThis.DEMOS?.a || !globalThis.DEMOS?.b) { document.body.textContent = NO_CONTENT; return; }
     storage = safeStorage();
     state = readState();
@@ -639,8 +773,10 @@
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
     window.addEventListener('storage', onStorage);
-    window.addEventListener('resize', fitAll);
+    window.addEventListener('resize', relayout);
     render();
+    if (view === 'stage') initStage(); else initConsole();
+    if (!storageWorks()) announce(NO_STORAGE, true);
   }
 
   document.addEventListener('DOMContentLoaded', init);

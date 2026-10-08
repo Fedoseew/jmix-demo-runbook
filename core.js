@@ -7,6 +7,7 @@
   const COPYABLE = new Set(['shell', 'git', 'url', 'prompt']);
   const PROMPT_INTRO = /промпт[а-яё]* из следующ/i;
   const SHORT_MARK = /^\[8\]\s*/;
+  const SKIP_SEC = 30; // блок, пролистанный быстрее, считается пропущенным: факта нет, в темп не идёт
 
   function clampIndex(i, len) {
     if (len <= 0) return 0;
@@ -17,7 +18,7 @@
     return {
       demo: 'a', index: 0,
       timer: { running: false, startedAt: null, elapsedBefore: 0 },
-      elapsed: {}, steps: {}, short: false, light: false,
+      elapsed: {}, steps: {}, short: false, light: false, indexByDemo: {},
     };
   }
 
@@ -46,6 +47,7 @@
         steps: pick(s.steps, v => Number.isInteger(v) && v >= 0),
         short: s.short === true,
         light: s.light === true,
+        indexByDemo: pick({ a: s.indexByDemo?.a, b: s.indexByDemo?.b }, v => Number.isInteger(v) && v >= 0),
       };
     } catch (_) {
       return d;
@@ -85,6 +87,20 @@
   }
   function remaining(plannedMin, elapsedSec) { return plannedMin * 60 - elapsedSec; }
 
+  // Переход с блока from на блок to: время from уходит в факт (меньше SKIP_SEC — блок пролистали, факта нет).
+  // Таймер встаёт только по T: идущий идёт дальше на новом блоке, на заставке стоит. Сам стартует только
+  // с заставки на первый блок её демо (blocks — блоки демо, с которого уходим); щелчок по повестке
+  // с заставки и возврат 1/2 через заставку его не трогают.
+  function leaveBlock(state, from, to, now, blocks) {
+    const sec = Math.round(elapsedNow(state.timer, now));
+    const rest = Object.fromEntries(Object.entries(state.elapsed).filter(([k]) => k !== from.id));
+    const elapsed = sec >= SKIP_SEC ? { ...rest, [from.id]: sec } : rest;
+    const startsTalk = Boolean(from.pre) && to.id === blocks.find(b => !b.pre)?.id;
+    const running = !to.pre && (state.timer.running || startsTalk);
+    const elapsedBefore = elapsed[to.id] || 0;
+    return { elapsed, timer: { running, startedAt: running ? now : null, elapsedBefore } };
+  }
+
   // Fullscreen API возвращает промис, который отклоняется (нет жеста, iframe, запрет) — глотаем.
   async function toggleFullscreen(doc) {
     try {
@@ -101,11 +117,18 @@
 
   const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   const esc = s => String(s).replace(/[&<>"']/g, c => ESC[c]);
-  // Типографика сцены: тире не начинает строку, после стрелки нет переноса, короткие слова держатся за следующее.
-  const typo = s => esc(s)
-    .replace(/ — /g, ' — ')
-    .replace(/ → /g, ' → ')
-    .replace(/(?<=^|[\s(«])([а-яё]{1,2}|без|для|при|над|под|про)\s/giu, '$1 ');
+  // Типографика сцены: тире не начинает строку, после стрелки нет переноса, короткие слова держатся за следующее,
+  // слово через дефис («CRM-система») не рвётся. Без lookbehind: в Safari до 16.4 он ронял бы весь core.js.
+  const SHORT_WORD = /(^|[\s(«])([а-яё]{1,2}|без|для|при|над|под|про)[^\S\u00a0]/giu;
+  function glueShortWords(s) {
+    // совпадение съедает пробел перед следующим словом — повтор доклеивает цепочки «и в доме»
+    for (let prev = ''; prev !== s;) { prev = s; s = s.replace(SHORT_WORD, '$1$2\u00a0'); }
+    return s;
+  }
+  const typo = s => glueShortWords(esc(s)
+    .replace(/ — /g, '\u00a0— ')
+    .replace(/ → /g, ' →\u00a0'))
+    .replace(/[\p{L}\d]+(?:-[\p{L}\d]+)+/gu, '<span class="nw">$&</span>');
 
   // Лид — кратчайший законченный кусок (предложение, «…:», до « — », до «)») не длиннее max и без
   // разорванных скобок и кавычек. Нет такого — лида нет, абзац показывается целиком.
@@ -184,9 +207,9 @@
   const viewOf = search => (/(?:^|[?&])view=console(?:&|$)/.test(String(search)) ? 'console' : 'stage');
 
   globalThis.Runbook = {
-    STORAGE_KEY, LEAD_MAX, STAGE_FONT_MIN_CQW, KIND_LABELS,
+    STORAGE_KEY, LEAD_MAX, STAGE_FONT_MIN_CQW, KIND_LABELS, SKIP_SEC,
     clampIndex, defaultState, loadState, saveState, shouldHandleKey, totals,
-    fmt, elapsedNow, remaining, toggleFullscreen, copyText,
+    fmt, elapsedNow, remaining, leaveBlock, toggleFullscreen, copyText,
     actionLabel, isCopyable, esc, typo, splitLead, classifyActions, hasShort,
     nextStep, stepOf, pace, agenda, syncChanges, viewOf,
   };

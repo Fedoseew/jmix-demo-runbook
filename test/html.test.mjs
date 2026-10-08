@@ -107,13 +107,66 @@ test('панель зеркала не показывает перерасход
   assert.match(paint, /Math\.max\(0,/);
 });
 
-test('текущий шаг панели — до 3 строк, «Далее» — до 2', () => {
-  assert.match(cssRule('.d-txt') ?? '', /-webkit-line-clamp:\s*2/);
-  assert.match(cssRule('.d-step .d-txt') ?? '', /-webkit-line-clamp:\s*3/);
+test('панель: текущий шаг Studio и реплика не обрезаются, копируемый — до 3 строк, «Далее» — строка', () => {
+  assert.doesNotMatch(cssRule('.d-txt') ?? '', /line-clamp/);
+  assert.ok(!/\.d-cur[^{]*\{[^}]*line-clamp/.test(html), '.d-cur обрезается');
+  assert.match(cssRule('.d-txt.clip') ?? '', /-webkit-line-clamp:\s*3/);
+  assert.match(html, /\.d-nx\s*\{[^}]*-webkit-line-clamp:\s*1/);
+  assert.match(cssRule('.dock') ?? '', /max-height:\s*30vh/);
+  const app = readText('app.js');
+  assert.match(app, /dockText\(a, copyable \? 'd-cur clip' : 'd-cur'\)/);
+});
+
+test('светлая панель зеркала: контраст текста ≥ 4.5:1 (spec §10.5)', () => {
+  const rule = html.match(/body\.light \.dock\s*\{([^}]*)\}/)?.[1];
+  assert.ok(rule, 'нет body.light .dock');
+  const tok = name => rule.match(new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})`))?.[1];
+  for (const fg of ['ink', 'muted', 'white', 'cyan']) {
+    for (const bg of ['bg', 'panel', 'panel-2']) {
+      assert.ok(tok(fg) && tok(bg), `нет --${fg} или --${bg}`);
+      const ratio = contrast(tok(fg), tok(bg));
+      assert.ok(ratio >= 4.5, `светлая панель: --${fg} на --${bg}: ${ratio.toFixed(2)}`);
+    }
+  }
+});
+
+test('подсказка клавиш сцены — по движению мыши, а не пока курсор над слайдом', () => {
+  assert.doesNotMatch(html, /\.stage:hover\s+\.st-hint/);
+  assert.match(html, /html\.pointer body\.view-stage \.st-hint\s*\{\s*opacity:\s*1/);
+  assert.match(html, /:root:fullscreen:not\(\.pointer\) body\.view-stage\s*\{\s*cursor:\s*none/);
+});
+
+test('подсказка клавиш сцены — в строке шапки, не над пунктами слайда', () => {
+  const rule = cssRule('.st-hint') ?? '';
+  assert.doesNotMatch(rule, /bottom:\s*4cqw/, 'в низу слайда пилюля ложится на последний пункт (A4, A5)');
+  assert.match(rule, /top:\s*3\.3cqw/, 'подсказка — в строке счётчика и логотипа');
+});
+
+test('перерасход в консоли красит и полосу блока', () => {
+  assert.match(cssRule('.t-bar.late i') ?? '', /background:\s*var\(--pink\)/);
+});
+
+test('светлая сцена: «сейчас» на полосе ярче «пройдено» (.42)', () => {
+  const alpha = Number(cssRule('.stage.light .st-seg.cur')?.match(/rgb\(253 180 43 \/ (\.\d+)\)/)?.[1]);
+  assert.ok(alpha > 0.42, `альфа ${alpha}`);
 });
 
 test('сегмент «сейчас» на полосе сцены виден и при 0% (spec §10.1)', () => {
   const rule = cssRule('.st-seg.cur');
   assert.ok(rule, 'нет правила .st-seg.cur');
   assert.match(rule, /background:\s*rgb\(253 180 43 \/ \.\d+\)/);
+});
+
+// U10: в зеркале консоли нет, а легенда панели и подсказка сцены показывают не все клавиши.
+test('справка «?» перечисляет каждую клавишу, которую читает app.js (U10)', () => {
+  const app = readText('app.js');
+  const codes = new Set([...app.matchAll(/\b(Key[A-Z]|Digit\d|Arrow(?:Left|Right)|Space|Slash)\b/g)].map(m => m[1]));
+  assert.ok(codes.has('Slash'), 'app.js не читает Slash (?)');
+  const label = c => ({ ArrowLeft: '←', ArrowRight: '→', Space: 'Space', Slash: '?' }[c] ?? c.replace(/^(Key|Digit)/, ''));
+  const dialog = html.match(/<dialog id="keys"[\s\S]*?<\/dialog>/)?.[0];
+  assert.ok(dialog, 'нет <dialog id="keys">');
+  const missing = [...codes].map(label).filter(k => !dialog.includes(`<kbd>${k}</kbd>`));
+  assert.deepEqual(missing, []);
+  assert.match(app, /st-hint[^\n]*<kbd>\?<\/kbd>/, 'подсказка сцены не называет ?');
+  assert.match(app, /d-legend[^\n]*<kbd>\?<\/kbd>/, 'легенда панели не называет ?');
 });
