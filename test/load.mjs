@@ -17,3 +17,13 @@ export function loadScript(relPath, context = {}) {
 export function readText(relPath) {
   return readFileSync(resolve(root, relPath), 'utf8');
 }
+
+/** Выполняет несколько файлов проекта в одном контексте по порядку и возвращает его globalThis. */
+export function loadScripts(relPaths, context = {}) {
+  const ctx = vm.createContext({ console, ...context });
+  ctx.globalThis = ctx;
+  for (const relPath of relPaths) {
+    vm.runInContext(readFileSync(resolve(root, relPath), 'utf8'), ctx, { filename: relPath });
+  }
+  return ctx;
+}
