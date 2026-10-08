@@ -530,6 +530,8 @@
 
   function onClick(e) {
     if (view !== 'console') return;
+    // Заметка (summary) и ссылка в фокусе после щелчка мышью тоже перехватили бы Space; blur() не отменяет ни раскрытие заметки, ни переход по ссылке.
+    if (e.detail > 0) e.target.closest('summary, a')?.blur();
     const t = e.target.closest('[data-go],[data-demo],[data-copy],[data-expand],[data-short],[data-step]');
     if (!t || e.target.closest('a')) return;
     const d = t.dataset;
