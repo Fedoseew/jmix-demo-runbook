@@ -1,4 +1,5 @@
 sketches/
 .idea/
 node_modules/
-assets/
+assets/*
+!assets/README.md
