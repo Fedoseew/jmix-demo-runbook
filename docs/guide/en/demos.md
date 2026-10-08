@@ -119,7 +119,7 @@ The runbook refers to branches, stands and ports by the names in spec §6–7. T
 
 - JDK 21+ (a JDK, not a JRE) on `PATH` or `JAVA_HOME`; Docker with PostgreSQL loaded from the dump (demo B).
 - The stand jar is built the day before from `demo/ai-app` and copied to `~/demo-jars/crm.jar`; stands start with `STAND_JAR="$HOME/demo-jars/crm.jar"`. The main stand is `aura-light` on `:8091`; the A6 fallback is `aura-dark` on `:8092` with the scenario already completed.
-- Keys are only checked for presence: `OPENROUTER_API_KEY`, `SPRING_AI_OPENAI_APIKEY`; `ANTHROPIC_API_KEY` is optional.
+- The key is only checked for presence: `SPRING_AI_OPENAI_APIKEY`, used by CRM AI and the Dynamic Model agent (both on `gpt-5.4`); `OPENROUTER_API_KEY` (the agent on DeepSeek) and `ANTHROPIC_API_KEY` (`aura-dark` on Claude) are optional.
 - Studio is open on `jmix-crm` and on the demo B project, indexing is done, Jmix AI answered a test question; `jmix --help` responds and the A3 command has been run into a spare folder.
 - Internet for the AI blocks (A3, A4–A6, B4), or a hotspot. Fallbacks: recorded dialogs in the CRM AI history, the completed scenario on `aura-dark`, screenshots in `assets/` next to the runbook: they are captured locally at rehearsal (A4, A5, the B4 teaser and the A6 result by `tools/capture-fallbacks.mjs`, the full file list in `assets/README.md`); the PNG files are git-ignored, so they never reach the repository.
 
@@ -130,7 +130,7 @@ The detailed checklist is in the A-pre and B-pre blocks (console, `?view=console
 Both demos can be repeated on public repositories and stands:
 
 - [`jmix-crm`](https://github.com/jmix-framework/jmix-crm), branch `main`: the B2B CRM with CRM AI (A4) and the starting point for the agent task (A2); branch [`demo/agent-task`](https://github.com/jmix-framework/jmix-crm/tree/demo/agent-task): the prompt and the agent's result, see `git log --oneline -3` and `git diff --stat main...demo/agent-task` as in A2.
-- Branch [`demo/ai-app`](https://github.com/jmix-framework/jmix-crm/tree/demo/ai-app): the A4–A6 stand. Build and run it as `demo/dynmodel-ai-agent/README.md` describes in "The demo/ai-app branch". It needs Jmix and Jmix Premium 3.1.999-SNAPSHOT in the local Maven (Premium needs access) and the keys `SPRING_AI_OPENAI_APIKEY` and `OPENROUTER_API_KEY`; the branch is based on [`50-dynmodel-ai-agent`](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent).
+- Branch [`demo/ai-app`](https://github.com/jmix-framework/jmix-crm/tree/demo/ai-app): the A4–A6 stand. Build and run it as `demo/dynmodel-ai-agent/README.md` describes in "The demo/ai-app branch". It needs Jmix and Jmix Premium 3.1.999-SNAPSHOT in the local Maven (Premium needs access) and the key `SPRING_AI_OPENAI_APIKEY` (`OPENROUTER_API_KEY` is optional); the branch is based on [`50-dynmodel-ai-agent`](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent).
 - [`crm-from-db`](https://github.com/Fedoseew/crm-from-db): all of demo B. Run `docker compose -f db/docker-compose.yml up -d`, then `./gradlew bootRun` on any branch from `b/01-empty` to `b/05-agent`; log in as admin / admin.
 - [demo.jmix.io/b2b-crm](https://demo.jmix.io/b2b-crm/login): the same CRM online, nothing to install.
 - [jmix-agent-toolkit](https://github.com/jmix-framework/jmix-agent-toolkit): skills, guidelines and MCP for your own agent (A1, A2, B4).
