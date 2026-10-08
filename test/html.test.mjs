@@ -75,3 +75,15 @@ test('текст консоли не мельче 14px (spec §10.5)', () => {
   assert.ok(sizes.length > 20, `нашлось только ${sizes.length} размеров`);
   assert.deepEqual(sizes.filter(px => px < 14), []);
 });
+
+test('текст панели зеркала не мельче 18px (spec §10.5)', () => {
+  const from = html.indexOf('ПАНЕЛЬ ДЛЯ ЗЕРКАЛА');
+  assert.ok(from > -1, 'нет раздела CSS панели');
+  const css = html.slice(from, html.indexOf('</style>'));
+  const sizes = [
+    ...[...css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m => m[1]),
+    ...[...css.matchAll(/font:\s*\d+\s+(\d+(?:\.\d+)?)px/g)].map(m => m[1]),
+  ].map(Number);
+  assert.ok(sizes.length >= 6, `нашлось только ${sizes.length} размеров`);
+  assert.deepEqual(sizes.filter(px => px < 18), []);
+});

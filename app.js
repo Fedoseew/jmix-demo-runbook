@@ -15,13 +15,14 @@
   const STEP_TOP_RATIO = 0.28;  // активный шаг — в верхней трети колонки
   const STEP_TOP_GAP_PX = 6;
   const MONO_KINDS = new Set(['shell', 'git', 'url']);
+  const DOCK_KEY = 'jmix-runbook/dock';
   const NO_CONTENT = 'content.js не загрузился — откройте index.html из папки runbook';
 
   // ---------------- состояние и хелперы ----------------
   let storage = null;
   let state = null;       // общее для окон: хранится в localStorage
   let view = 'stage';     // своё у окна: из URL, в localStorage не пишется
-  let dockOpen = false;   // своё у окна (панель для зеркала, Task 4)
+  let dockOpen = false;   // своё у окна: панель для зеркала, хранится в sessionStorage окна
   let tick = null;
   let clockTick = null;
   let statusTimer = null;
@@ -265,6 +266,7 @@
 
   // Активный шаг и короткая версия — без перерисовки, чтобы не терять раскрытые заметки.
   function paintSteps(smooth) {
+    paintDock();
     const items = [...$('app').querySelectorAll('.steps .step')];
     if (!items.length) return;
     const cur = stepIndex();
@@ -343,8 +345,69 @@
                : 'Браузер заблокировал окно — откройте index.html?view=console вручную');
   }
 
-  // ---------------- панель для зеркала: заглушка Task 4 ----------------
-  function dockHTML() { return ''; }
+  // ---------------- панель для зеркала (клавиша N на сцене) ----------------
+  // Скелет; время рисует paintTimer, шаги — paintSteps, поэтому панель не перерисовывается целиком.
+  function dockHTML() {
+    if (view !== 'stage' || !dockOpen) return '';
+    const b = block();
+    const time = b.pre
+      ? `<strong>–:––</strong><span>таймер стоит · ${Runbook.esc(b.id)}</span>`
+      : `<strong data-dock-left></strong><span>осталось · ${Runbook.esc(b.id)}</span><div class="d-bar"><i></i></div>`;
+    return `<aside class="dock" aria-label="Панель докладчика">
+      <div class="d-time">${time}</div>
+      <div class="d-step" data-dock-step></div>
+      <div class="d-next" data-dock-next></div>
+      <div class="d-keys"><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>N</kbd> скрыть</span></div>
+    </aside>`;
+  }
+
+  const dockText = a => MONO_KINDS.has(a.kind)
+    ? `<span class="d-txt mono${a.kind === 'url' ? ' url' : ''}">${Runbook.esc(a.text)}</span>`
+    : `<span class="d-txt">${arrows(Runbook.esc(a.text))}</span>`;
+
+  function dockStepHTML() {
+    const list = steps(), cur = stepIndex(), a = list[cur];
+    if (!a) return '';
+    return `<span class="s-n">${two(cur + 1)} / ${two(list.length)}</span>
+      <span class="s-ic k-${a.kind}" title="${Runbook.actionLabel(a.kind)}">${icon('i-' + a.kind)}</span>${dockText(a)}
+      ${Runbook.isCopyable(a.kind) ? copyBtn(state.index, cur, true) : ''}`;
+  }
+
+  // Следующий шаг (с учётом короткой версии); шагов не осталось — первый блок дальше.
+  function dockNextHTML() {
+    const list = steps(), cur = stepIndex();
+    const i = Runbook.nextStep(list, cur, 1, shortOn());
+    const n = blocks()[state.index + 1];
+    const body = i !== cur ? dockText(list[i])
+      : `<span class="d-txt">${n ? `→ ${Runbook.esc(n.id)} · ${Runbook.esc(n.title)}` : 'Это последний блок'}</span>`;
+    return `<span class="cap">Далее</span>${body}`;
+  }
+
+  function paintDock() {
+    const step = q('[data-dock-step]');
+    if (!step) return;
+    step.innerHTML = dockStepHTML();
+    q('[data-dock-next]').innerHTML = dockNextHTML();
+  }
+
+  function paintDockTimer(pct) {
+    const left = q('[data-dock-left]');
+    if (!left) return; // панель закрыта или блок без таймера
+    const sec = Runbook.remaining(block().minutes, live());
+    left.textContent = Runbook.fmt(sec);
+    left.classList.toggle('late', sec < 0);
+    q('.d-bar').style.setProperty('--p', `${pct}%`);
+  }
+
+  function loadDock() {
+    try { return sessionStorage.getItem(DOCK_KEY) === '1'; } catch (_) { return false; } // ponytail: нет sessionStorage — панель просто не запоминается
+  }
+
+  function toggleDock() {
+    dockOpen = !dockOpen;
+    try { sessionStorage.setItem(DOCK_KEY, dockOpen ? '1' : '0'); } catch (_) { /* см. loadDock */ }
+    render();
+  }
 
   // ---------------- рендер ----------------
   function render() {
@@ -358,11 +421,11 @@
     document.title = `${block().id} · ${view === 'console' ? 'Консоль' : 'Сцена'} — Jmix Runbook`;
   }
 
-  // Без перерисовки: полоса сцены (она есть и в миниатюре консоли), числа консоли; панель зеркала добавляет Task 4.
+  // Без перерисовки: полоса сцены (она есть и в миниатюре консоли), числа консоли или время панели зеркала.
   function paintTimer() {
     const pct = progressPct(block());
     $('app').querySelectorAll('.st-seg.cur').forEach(seg => seg.style.setProperty('--p', `${pct}%`));
-    if (view === 'console') paintConsoleTimer(pct);
+    if (view === 'console') paintConsoleTimer(pct); else paintDockTimer(pct);
   }
 
   const q = sel => $('app').querySelector(sel);
@@ -490,19 +553,22 @@
 
   // ---------------- клавиши и синхронизация окон ----------------
   // e.code — чтобы клавиши работали и в русской раскладке
-  const CONSOLE_KEYS = {
+  const STEP_KEYS = {
     KeyJ: () => moveStep(1),
     Space: () => moveStep(1),
     KeyK: () => moveStep(-1),
     KeyC: () => copyStep(state.index, stepIndex()),
-    KeyS: toggleShort,
   };
+  const CONSOLE_KEYS = { ...STEP_KEYS, KeyS: toggleShort };
+  // шаги и копирование — в консоли и на сцене с открытой панелью; короткая версия — только в консоли
+  const viewKeys = () => (view === 'console' ? CONSOLE_KEYS : dockOpen ? STEP_KEYS : {});
 
   function onKey(e) {
     if (!Runbook.shouldHandleKey(e) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.code === 'Space' && e.target.closest?.('button, summary, input, a')) return;
-    if (view === 'console' && CONSOLE_KEYS[e.code]) {
-      CONSOLE_KEYS[e.code]();
+    const action = viewKeys()[e.code];
+    if (action) {
+      action();
       e.preventDefault();
       return;
     }
@@ -515,6 +581,7 @@
       case 'KeyR': resetTimer(); break;
       case 'KeyF': Runbook.toggleFullscreen(document); break;
       case 'KeyP': if (view !== 'stage') return; openConsole(); break;
+      case 'KeyN': if (view !== 'stage') return; toggleDock(); break;
       case 'KeyL': state = { ...state, light: !state.light }; commit(); render(); break;
       default: return;
     }
@@ -529,7 +596,6 @@
   }
 
   function onClick(e) {
-    if (view !== 'console') return;
     // Заметка (summary) и ссылка в фокусе после щелчка мышью тоже перехватили бы Space; blur() не отменяет ни раскрытие заметки, ни переход по ссылке.
     if (e.detail > 0) e.target.closest('summary, a')?.blur();
     const t = e.target.closest('[data-go],[data-demo],[data-copy],[data-expand],[data-short],[data-step]');
@@ -569,6 +635,7 @@
     storage = safeStorage();
     state = readState();
     view = Runbook.viewOf(location.search);
+    dockOpen = view === 'stage' && loadDock();
     document.addEventListener('keydown', onKey);
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
