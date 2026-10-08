@@ -48,7 +48,10 @@ The console header shows:
 
 - «Сцена · на связи» (stage online) while the stage window is open (it writes a heartbeat every 2 s), and «Сцена не найдена» (stage not found) once it is closed;
 - «Окно не в фокусе» (window not focused) instead of the key legend when focus is elsewhere (after `F` in the stage window, or in Studio): `J`, `K`, `C`, `S` then go to the other window, so click the console;
-- a link to the GitHub repository (opens in a new tab; in windows narrower than 1280px only its icon is shown; the stage never shows it).
+- a link to the GitHub repository (opens in a new tab; in windows narrower than 1280px only its icon is shown; the stage never shows it);
+- a clock.
+
+The header always stays on one row from 1024px up: below 1280px the legend drops «1 2 демо» (the demo tabs show those keys), below 1190px the clock goes, and below 1100px «L свет» (light). The `?` reference lists every key.
 
 Without the dock, the stage shows no messages, since the audience would see them. The exceptions are the two you need during setup: a blocked console popup and unavailable `localStorage`. The stage key hint shows for 2.5 s after load and after mouse movement; in full screen the cursor hides.
 

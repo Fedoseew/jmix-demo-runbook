@@ -57,7 +57,8 @@ jmix-demo-runbook/
 ├── core.js                 чистая логика без DOM: состояние, таймер, шаги (globalThis.Runbook)
 ├── app.js                  DOM: сцена, консоль, панель зеркала, клавиши, синхронизация окон
 ├── test/                   node --test: контент, логика, разметка, загрузка страницы
-├── tools/                  shot.mjs — скриншоты, smoke.mjs — смоук двух окон, browser.mjs — общий запуск Playwright
+├── tools/                  shot.mjs — скриншоты, smoke.mjs — смоук двух окон, capture-fallbacks.mjs — скриншоты-fallback со стендов, browser.mjs — общий запуск Playwright
+├── assets/README.md        какие скриншоты-fallback нужны и как их снять (сами PNG в .gitignore)
 ├── docs/
 │   ├── guide/ru, guide/en  руководства
 │   ├── images/             скриншоты для README, руководств и превью ссылки
@@ -78,8 +79,11 @@ jmix-demo-runbook/
 | | [Fedoseew/jmix-demo-runbook](https://github.com/Fedoseew/jmix-demo-runbook) | исходники, issues |
 | Репозитории демо | [jmix-agent-toolkit](https://github.com/jmix-framework/jmix-agent-toolkit) | skills, guidelines и инструменты для AI-агентов (A1, A2, B4) |
 | | [jmix-cli](https://github.com/jmix-framework/jmix-cli) | создание проектов из терминала: мастер и `--non-interactive` (A3, B1) |
-| | [jmix-crm](https://github.com/jmix-framework/jmix-crm) | B2B CRM с AI-функциями — стенд демо A4–A6 |
-| | [jmix-crm, ветка 50-dynmodel-ai-agent](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent) | стенд Dynamic Model AI (A6) |
+| | [jmix-crm](https://github.com/jmix-framework/jmix-crm) | B2B CRM с AI-функциями; ветка `main` — основа задачи агента (A2) |
+| | [jmix-crm, ветка demo/agent-task](https://github.com/jmix-framework/jmix-crm/tree/demo/agent-task) | промпт `demo/PROMPT.md` и результат задачи агента одним коммитом (A2) |
+| | [jmix-crm, ветка demo/ai-app](https://github.com/jmix-framework/jmix-crm/tree/demo/ai-app) | стенд демо A4–A6: CRM AI, отчёты с AI JPQL, Dynamic Model AI; сборка — в `demo/dynmodel-ai-agent/README.md` |
+| | [jmix-crm, ветка 50-dynmodel-ai-agent](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent) | стенд Dynamic Model AI, основа `demo/ai-app` (A6) |
+| | [crm-from-db](https://github.com/Fedoseew/crm-from-db) | проект демо B: PostgreSQL с дампом CRM и ветки `b/01-empty` … `b/05-agent` (B1–B4) |
 | | [demo.jmix.io/b2b-crm](https://demo.jmix.io/b2b-crm/login) | та же CRM онлайн |
 | Документация | [docs.jmix.io](https://docs.jmix.io/jmix/) · [Tutorial](https://docs.jmix.io/jmix/tutorial/index.html) | документация Jmix и пошаговый туториал — с чего начать |
 | | [AI Tools](https://docs.jmix.io/jmix/ai-tools/index.html) · [начало работы](https://docs.jmix.io/jmix/ai-tools/getting-started.html) | add-on AI Tools: LLM-ассистент в приложении отвечает на вопросы по данным (CRM AI, A4) |

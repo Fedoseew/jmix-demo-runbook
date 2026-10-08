@@ -57,7 +57,8 @@ jmix-demo-runbook/
 ├── core.js                 pure logic without the DOM: state, timer, steps (globalThis.Runbook)
 ├── app.js                  the DOM: stage, console, mirror dock, keys, window sync
 ├── test/                   node --test: content, logic, markup, page loading
-├── tools/                  shot.mjs for screenshots, smoke.mjs for a two-window smoke test, browser.mjs, the shared Playwright launcher
+├── tools/                  shot.mjs for screenshots, smoke.mjs for a two-window smoke test, capture-fallbacks.mjs for fallback screenshots from the stands, browser.mjs, the shared Playwright launcher
+├── assets/README.md        which fallback screenshots are needed and how to capture them (the PNG files are git-ignored)
 ├── docs/
 │   ├── guide/ru, guide/en  guides
 │   ├── images/             screenshots for the READMEs, the guides and link previews
@@ -78,8 +79,11 @@ jmix-demo-runbook/
 | | [Fedoseew/jmix-demo-runbook](https://github.com/Fedoseew/jmix-demo-runbook) | sources, issues |
 | Demo repositories | [jmix-agent-toolkit](https://github.com/jmix-framework/jmix-agent-toolkit) | skills, guidelines and tools for AI coding agents (A1, A2, B4) |
 | | [jmix-cli](https://github.com/jmix-framework/jmix-cli) | create projects from the terminal: wizard and `--non-interactive` (A3, B1) |
-| | [jmix-crm](https://github.com/jmix-framework/jmix-crm) | B2B CRM with AI features, the stand for A4–A6 |
-| | [jmix-crm, branch 50-dynmodel-ai-agent](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent) | the Dynamic Model AI stand (A6) |
+| | [jmix-crm](https://github.com/jmix-framework/jmix-crm) | B2B CRM with AI features; branch `main` is the starting point of the agent task (A2) |
+| | [jmix-crm, branch demo/agent-task](https://github.com/jmix-framework/jmix-crm/tree/demo/agent-task) | the prompt `demo/PROMPT.md` and the agent's result as one commit (A2) |
+| | [jmix-crm, branch demo/ai-app](https://github.com/jmix-framework/jmix-crm/tree/demo/ai-app) | the stand for A4–A6: CRM AI, reports with AI JPQL, Dynamic Model AI; build steps in `demo/dynmodel-ai-agent/README.md` |
+| | [jmix-crm, branch 50-dynmodel-ai-agent](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent) | the Dynamic Model AI stand, base of `demo/ai-app` (A6) |
+| | [crm-from-db](https://github.com/Fedoseew/crm-from-db) | the demo B project: PostgreSQL with the CRM dump and branches `b/01-empty` … `b/05-agent` (B1–B4) |
 | | [demo.jmix.io/b2b-crm](https://demo.jmix.io/b2b-crm/login) | the same CRM online |
 | Documentation | [docs.jmix.io](https://docs.jmix.io/jmix/) · [Tutorial](https://docs.jmix.io/jmix/tutorial/index.html) | Jmix documentation and the step-by-step tutorial, the place to start |
 | | [AI Tools](https://docs.jmix.io/jmix/ai-tools/index.html) · [getting started](https://docs.jmix.io/jmix/ai-tools/getting-started.html) | AI Tools add-on: an LLM assistant inside the app answers questions over data (CRM AI, A4) |

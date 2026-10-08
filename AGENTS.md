@@ -15,7 +15,8 @@ An offline presenter runbook for two live Jmix demos: A "AI × Jmix" (73 min cor
 | `core.js` | `globalThis.Runbook`: pure logic without the DOM, tested in Node |
 | `app.js` | DOM: stage, console, dock, keys, copy, timer painting, two-window sync |
 | `test/*.test.mjs` | `node --test`, no dependencies; `test/load.mjs` runs project files in `node:vm` |
-| `tools/` | `shot.mjs` screenshots, `smoke.mjs` two-window smoke test, `browser.mjs` shared Playwright launcher |
+| `tools/` | `shot.mjs` screenshots, `smoke.mjs` two-window smoke test, `capture-fallbacks.mjs` fallback screenshots from the running demo stands, `browser.mjs` shared Playwright launcher |
+| `assets/` | rehearsal fallback screenshots (git-ignored); `assets/README.md` lists every file `content.js` opens and how to capture it |
 | `docs/guide/{ru,en}/` | user guides: `usage`, `demos`, `content`, `architecture` |
 | `docs/superpowers/` | spec and plans. History: do not move or rewrite. Spec §10–11 is the UI contract |
 | `docs/open-questions.md` | things to verify at rehearsal |
@@ -27,6 +28,7 @@ An offline presenter runbook for two live Jmix demos: A "AI × Jmix" (73 min cor
 node --test                                    # all tests; run after every change
 node tools/shot.mjs <url|path> <out.png|.jpg> [stateJSON|-] [w] [h] [KeyN,KeyJ,...]
 node tools/smoke.mjs [url|path]                # PASS/FAIL lines, exit 1 on failure
+node tools/capture-fallbacks.mjs [a4] [b4] [a5] [a6]  # fallback screenshots from the running demo stands into assets/ (assets/README.md)
 ```
 
 The tools resolve Playwright from `PLAYWRIGHT_MODULE` (a module path such as `/…/node_modules/playwright-core/index.mjs`, or a package name), else `playwright`, else `playwright-core`; the browser from `CHROME_PATH` if set. Without either: `npm i --no-save playwright && npx playwright install chromium` (`node_modules/` is git-ignored). Never install anything globally.
@@ -74,7 +76,7 @@ Full reference: `docs/guide/en/content.md`.
 
 ## Git
 
-Conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`. One logical change per commit. Do not commit `node_modules/`, scratch screenshots, `sketches/`, or `assets/` (rehearsal fallback screenshots with stand data; local only, git-ignored).
+Conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`. One logical change per commit. Do not commit `node_modules/`, scratch screenshots, `sketches/`, or the `assets/*.png` fallback screenshots (stand data; local only, git-ignored; `assets/README.md` is tracked).
 
 ## Skills
 

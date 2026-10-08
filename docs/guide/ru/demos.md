@@ -105,15 +105,15 @@ gantt
 
 ## Что подготовить
 
-Runbook ссылается на ветки, стенды и порты по именам из spec §6–7. **Демо-ветки и репозиторий демо B пока не опубликованы:** по spec §7 это следующая итерация, ссылки на них сейчас ведут на 404. Публичная часть — в разделе [Что можно попробовать уже сейчас](#что-можно-попробовать-уже-сейчас).
+Runbook ссылается на ветки, стенды и порты по именам из spec §6–7. Демо-ветки и репозиторий демо B готовы и лежат на GitHub; как повторить демо по ним — в разделе [Что можно попробовать уже сейчас](#что-можно-попробовать-уже-сейчас).
 
 **Репозитории и ветки**
 
 | Что | Откуда | Для чего |
 |---|---|---|
-| [`jmix-crm`](https://github.com/jmix-framework/jmix-crm), ветка `demo/ai-app` (ещё не опубликована) | от [`50-dynmodel-ai-agent`](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent) | стенды, демо-данные A4–A6, пример `@ExcludeFromAi`, отчёт с AI JPQL |
-| `jmix-crm`, ветка `demo/agent-task` (ещё не опубликована) | от `main` | результат агентской задачи A2 одним коммитом и промпт в `demo/PROMPT.md` |
-| `crm-from-db` (новый репозиторий, ещё не опубликован) | — | `db/docker-compose.yml` и `db/crm.sql` (дамп схемы и данных CRM), ветки `b/01-empty` → `b/02-model` → `b/03-views` → `b/04-role` → `b/05-agent` |
+| [`jmix-crm`](https://github.com/jmix-framework/jmix-crm), ветка [`demo/ai-app`](https://github.com/jmix-framework/jmix-crm/tree/demo/ai-app) | от [`50-dynmodel-ai-agent`](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent) | стенды и скрипт `demo/dynmodel-ai-agent/stands.sh`, демо-данные A4–A6, `@ExcludeFromAi` на `Contact.phone` и `Contact.email`, JPQL в логе (DEBUG), архив отчётов `demo/reports/ai-jpql-reports.zip` |
+| `jmix-crm`, ветка [`demo/agent-task`](https://github.com/jmix-framework/jmix-crm/tree/demo/agent-task) | от `main` | промпт A2 в `demo/PROMPT.md` и результат агента одним коммитом с доказательствами гейтов |
+| [`crm-from-db`](https://github.com/Fedoseew/crm-from-db) | `jmix new`, Jmix 3.0.3 | `db/docker-compose.yml` (PostgreSQL 17.11 на порту 5434) и `db/crm.sql` (дамп схемы и данных CRM), ветки `b/01-empty` → `b/02-model` → `b/03-views` → `b/04-role` → `b/05-agent` |
 
 **Стенды и окружение**
 
@@ -121,15 +121,17 @@ Runbook ссылается на ветки, стенды и порты по им
 - Jar стенда собран накануне из `demo/ai-app` и скопирован в `~/demo-jars/crm.jar`; стенды стартуют с `STAND_JAR="$HOME/demo-jars/crm.jar"`. Основной стенд — `aura-light` на `:8091`, запасной для A6 — `aura-dark` на `:8092` с уже пройденным сценарием.
 - Ключи проверяются только на наличие: `OPENROUTER_API_KEY`, `SPRING_AI_OPENAI_APIKEY`; `ANTHROPIC_API_KEY` — по желанию.
 - Studio открыт на `jmix-crm` и на проекте B, индексация завершена, Jmix AI ответил на пробный вопрос; `jmix --help` отвечает, команда A3 прогнана в запасной каталог.
-- Интернет для AI-блоков (A3, A4–A6, B4) или hotspot. Запасные варианты: записанные диалоги в «Истории» CRM AI, пройденный сценарий на `aura-dark`, скриншоты в `assets/` рядом с runbook: их снимают локально на репетиции, папка в `.gitignore` и в репозиторий не попадает.
+- Интернет для AI-блоков (A3, A4–A6, B4) или hotspot. Запасные варианты: записанные диалоги в «Истории» CRM AI, пройденный сценарий на `aura-dark`, скриншоты в `assets/` рядом с runbook: их снимают локально на репетиции (A4, A5, тизер B4 и итог A6 — `tools/capture-fallbacks.mjs`, список всех файлов — `assets/README.md`); сами PNG в `.gitignore` и в репозиторий не попадают.
 
 Подробный чек-лист — в блоках A-pre и B-pre (консоль, `?view=console`). Что ещё не проверено и должно закрыться на репетиции — [docs/open-questions.md](../../open-questions.md).
 
 ## Что можно попробовать уже сейчас
 
-Без демо-веток можно повторить большую часть демо на публичных репозиториях и стендах:
+Оба демо можно повторить на публичных репозиториях и стендах:
 
-- [`jmix-crm`](https://github.com/jmix-framework/jmix-crm), ветка `main` — B2B CRM с CRM AI (A4) и база для задачи агента (A2); ветка [`50-dynmodel-ai-agent`](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent) — Dynamic Model AI (A6).
+- [`jmix-crm`](https://github.com/jmix-framework/jmix-crm), ветка `main` — B2B CRM с CRM AI (A4) и база для задачи агента (A2); ветка [`demo/agent-task`](https://github.com/jmix-framework/jmix-crm/tree/demo/agent-task) — промпт и результат агента: `git log --oneline -3` и `git diff --stat main...demo/agent-task`, как в A2.
+- Ветка [`demo/ai-app`](https://github.com/jmix-framework/jmix-crm/tree/demo/ai-app) — стенд A4–A6: сборка и запуск по `demo/dynmodel-ai-agent/README_ru.md`, раздел «Ветка demo/ai-app». Нужны Jmix и Jmix Premium 3.1.999-SNAPSHOT из local Maven (для Premium нужен доступ), ключи `SPRING_AI_OPENAI_APIKEY` и `OPENROUTER_API_KEY`; основа ветки — [`50-dynmodel-ai-agent`](https://github.com/jmix-framework/jmix-crm/tree/50-dynmodel-ai-agent).
+- [`crm-from-db`](https://github.com/Fedoseew/crm-from-db) — демо B целиком: `docker compose -f db/docker-compose.yml up -d`, затем `./gradlew bootRun` на нужной ветке `b/01-empty` … `b/05-agent`; вход admin / admin.
 - [demo.jmix.io/b2b-crm](https://demo.jmix.io/b2b-crm/login) — та же CRM онлайн, без установки.
 - [jmix-agent-toolkit](https://github.com/jmix-framework/jmix-agent-toolkit) — skills, guidelines и MCP для своего агента (A1, A2, B4).
 - [jmix-cli](https://github.com/jmix-framework/jmix-cli) — проект из терминала, как в A3 и B1:

@@ -22,7 +22,7 @@
 | `core.js` | чистая логика без DOM — `globalThis.Runbook`: загрузка и проверка состояния, таймер и переходы, темп, классификация шагов, лиды заметок, типографика, `flowOf`. Тестируется в Node |
 | `app.js` | DOM: сцена, консоль, панель зеркала, клавиши, копирование, таймер на экране, синхронизация окон |
 | `test/` | `node --test`: `content`, `core`, `html`, `app` и загрузчик `load.mjs` |
-| `tools/` | `shot.mjs` (скриншот), `smoke.mjs` (смоук двух окон), `browser.mjs` (запуск Chromium для обоих) |
+| `tools/` | `shot.mjs` (скриншот), `smoke.mjs` (смоук двух окон), `capture-fallbacks.mjs` (скриншоты-fallback со стендов демо, см. `assets/README.md`), `browser.mjs` (запуск Chromium для всех трёх) |
 | `.agents/skills/` | skills для агентов; в `.claude/skills/` — относительные символьные ссылки на них. На Windows включите ссылки до клонирования (`git config --global core.symlinks true` в режиме разработчика) или скопируйте `.agents/skills/*` в `.claude/skills/` |
 
 ```mermaid
