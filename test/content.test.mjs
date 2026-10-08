@@ -115,7 +115,9 @@ test('jar стенда — один путь ~/demo-jars/crm.jar в обоих p
   assert.ok(jars.length >= 3 && jars.every(j => j === '$HOME/demo-jars/crm.jar'), jars.join(', '));
   for (const id of ['a', 'b']) {
     const pre = DEMOS[id].blocks[0].actions.map(a => a.text).join('\n');
-    assert.match(pre, /cp -n .*demo-jars\/crm\.jar/, `${id}: нет копии jar`);
+    // cp -n на macOS при готовой копии завершается с кодом 1: шаг выглядел бы упавшим
+    assert.match(pre, /\[ -f "\$HOME\/demo-jars\/crm\.jar" \] \|\| cp \S+ "\$HOME\/demo-jars\/crm\.jar"/, `${id}: нет идемпотентной копии jar`);
+    assert.doesNotMatch(pre, /cp -n/, `${id}: cp -n`);
     assert.match(pre, /stands\.sh status aura-light/, `${id}: нет проверки status`);
   }
 });
@@ -136,4 +138,42 @@ test('A6: полная версия — шаги 1, 2, 3, 8, 9, 13; шаги 10�
 test('B1 без jmix new --help, B3 не строит роль вживую', () => {
   assert.ok(!B.B1.actions.some(a => a.text === 'jmix new --help'));
   assert.ok(!B.B3.actions.some(a => /New \(\+\) → Resource Role/.test(a.text)));
+});
+
+test('полоса процесса: у A4, A5, A6 и B2, 3–5 подписей, каждая ≤ 24 символов', () => {
+  for (const b of [A.A4, A.A5, A.A6, B.B2]) assert.ok(b.flow, `${b.id}: нет flow`);
+  for (const b of all().filter(x => x.flow !== undefined)) {
+    assert.ok(Array.isArray(b.flow) && b.flow.length >= 3 && b.flow.length <= 5, `${b.id}: flow из ${b.flow.length}`);
+    for (const s of b.flow) assert.ok(typeof s === 'string' && s.trim() && s.length <= 24, `${b.id}: «${s}»`);
+    assert.deepEqual([...Runbook.flowOf(b)], [...b.flow], `${b.id}: flowOf отбросил полосу`);
+  }
+});
+
+test('последний блок каждого демо говорит, где материалы: адрес на слайде и ссылка в действиях', () => {
+  for (const key of ['a', 'b']) {
+    const b = DEMOS[key].blocks.at(-1);
+    assert.ok(b.slide.some(t => t.includes('github.com/Fedoseew/jmix-demo-runbook')), `${b.id}: нет на слайде`);
+    assert.ok(b.actions.some(a => a.kind === 'url' && a.text === 'https://github.com/Fedoseew/jmix-demo-runbook'), `${b.id}: нет ссылки`);
+  }
+});
+
+// Шаги видит зал в панели зеркала (N): подготовка и цифры для сверки — только в заметках.
+test('шаги блоков не выдают подготовку: без «записанных» диалогов, «пока зал…» и ожидаемых цифр', () => {
+  for (const b of all().filter(x => !x.pre)) for (const a of b.actions) {
+    assert.doesNotMatch(a.text, /записанн|пока зал|\d+\/\d+ против/i, `${b.id}: ${a.text}`);
+  }
+});
+
+test('A-pre: прогрев Jmix AI — вопрос A3 промптом; каталога /tmp/jmix-demo/crm-cli перед A3 нет', () => {
+  const q = steps(A.A3).find(a => a.kind === 'prompt').text;
+  assert.ok(steps(A['A-pre']).some(a => a.kind === 'prompt' && a.text === q), 'нет прогрева вопросом A3');
+  assert.ok(A['A-pre'].actions.some(a => a.kind === 'shell' && a.text === 'rm -rf /tmp/jmix-demo/crm-cli'), 'нет очистки crm-cli');
+});
+
+test('A3: запасной скриншот ответа Jmix AI — последнее действие блока', () => {
+  assert.equal(A.A3.actions.at(-1).text, 'open ~/IdeaProjects/jmix-demo-runbook/assets/a3-jmix-ai.png');
+});
+
+test('A5 называется так же, как в карте A0', () => {
+  assert.ok(A.A0.slide.some(t => t.includes(A.A5.title)), A.A5.title);
 });

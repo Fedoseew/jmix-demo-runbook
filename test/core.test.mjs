@@ -274,7 +274,7 @@ test('leaveBlock: на блок, где уже был факт, таймер и�
     { elapsed: { A1: 600, A2: 60 }, timer: running(T0 + 60_000, 600) });
 });
 
-test('leaveBlock: пауза сохраняется — встаёт только по T', () => {
+test('leaveBlock: пауза сохраняется — переход между блоками таймер не запускает', () => {
   const s = { ...Runbook.defaultState(), elapsed: { A1: 300, A2: 90 }, timer: paused(300) };
   assert.deepEqual(plain(Runbook.leaveBlock(s, A1, A2, T0)),
     { elapsed: { A1: 300, A2: 90 }, timer: paused(90) });
@@ -336,4 +336,16 @@ test('splitLead: короткое первое предложение длинн
   assert.equal(Runbook.splitLead(`Контроль времени. На 7-й минуте ${long}`)[0], 'Контроль времени.');
   assert.equal(Runbook.splitLead(`Инспекции, каждый раз Undo. ${long}`)[0], 'Инспекции, каждый раз Undo.');
   assert.equal(Runbook.splitLead(`Liquibase ↔ entity. ${long}`)[0], 'Liquibase ↔ entity.');
+});
+
+test('flowOf: полоса процесса только по контракту — 3–5 непустых подписей до 24 символов, иначе пусто', () => {
+  const ok = ['База', 'Сущности', 'Экраны'];
+  assert.deepEqual(plain(Runbook.flowOf({ flow: ok })), ok);
+  assert.deepEqual(plain(Runbook.flowOf({ flow: ['1', '2', '3', '4', '5'] })), ['1', '2', '3', '4', '5']);
+  for (const flow of [undefined, 'База → Экраны', ['А', 'Б'], ['1', '2', '3', '4', '5', '6'],
+    ['База', ' ', 'Экраны'], ['База', 'x'.repeat(25), 'Экраны'], ['База', 7, 'Экраны']]) {
+    assert.deepEqual(plain(Runbook.flowOf({ flow })), [], JSON.stringify(flow));
+  }
+  assert.deepEqual(plain(Runbook.flowOf(undefined)), []);
+  assert.equal(Runbook.FLOW_LABEL_MAX, 24);
 });

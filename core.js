@@ -8,6 +8,7 @@
   const PROMPT_INTRO = /промпт[а-яё]* из следующ/i;
   const SHORT_MARK = /^\[8\]\s*/;
   const SKIP_SEC = 30; // блок, пролистанный быстрее, считается пропущенным: факта нет, в темп не идёт
+  const FLOW_MIN = 3, FLOW_MAX = 5, FLOW_LABEL_MAX = 24;
 
   function clampIndex(i, len) {
     if (len <= 0) return 0;
@@ -88,7 +89,7 @@
   function remaining(plannedMin, elapsedSec) { return plannedMin * 60 - elapsedSec; }
 
   // Переход с блока from на блок to: время from уходит в факт (меньше SKIP_SEC — блок пролистали, факта нет).
-  // Таймер встаёт только по T: идущий идёт дальше на новом блоке, на заставке стоит. Сам стартует только
+  // Между блоками идущий таймер идёт дальше, переход на заставку его останавливает, T — пауза / старт. Сам стартует только
   // с заставки на первый блок её демо (blocks — блоки демо, с которого уходим); щелчок по повестке
   // с заставки и возврат 1/2 через заставку его не трогают.
   function leaveBlock(state, from, to, now, blocks) {
@@ -163,6 +164,15 @@
 
   const hasShort = list => list.some(a => a.short);
 
+  // Полоса процесса под заголовком слайда (block.flow): 3–5 коротких подписей. Контент правят руками —
+  // полоса не по контракту не рисуется, а не ломает вёрстку слайда.
+  function flowOf(block) {
+    const f = block && block.flow;
+    const ok = Array.isArray(f) && f.length >= FLOW_MIN && f.length <= FLOW_MAX
+      && f.every(s => typeof s === 'string' && s.trim().length > 0 && s.length <= FLOW_LABEL_MAX);
+    return ok ? f : [];
+  }
+
   function nextStep(list, step, dir, shortOnly) {
     let i = step + dir;
     while (shortOnly && list[i] && !list[i].short) i += dir;
@@ -207,10 +217,10 @@
   const viewOf = search => (/(?:^|[?&])view=console(?:&|$)/.test(String(search)) ? 'console' : 'stage');
 
   globalThis.Runbook = {
-    STORAGE_KEY, LEAD_MAX, STAGE_FONT_MIN_CQW, KIND_LABELS, SKIP_SEC,
+    STORAGE_KEY, LEAD_MAX, STAGE_FONT_MIN_CQW, KIND_LABELS, SKIP_SEC, FLOW_LABEL_MAX,
     clampIndex, defaultState, loadState, saveState, shouldHandleKey, totals,
     fmt, elapsedNow, remaining, leaveBlock, toggleFullscreen, copyText,
     actionLabel, isCopyable, esc, typo, splitLead, classifyActions, hasShort,
-    nextStep, stepOf, pace, agenda, syncChanges, viewOf,
+    nextStep, stepOf, pace, agenda, syncChanges, viewOf, flowOf,
   };
 })();

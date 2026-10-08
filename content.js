@@ -19,13 +19,13 @@ globalThis.DEMOS = {
           "jmix-crm на main, tracked-файлы чистые, есть demo/agent-task, промпт A2 в буфере",
           "Studio: индексация завершена, MCP Server включён, Jmix AI ответил на пробный вопрос",
           "Агент для A2 запускается, залогинен, видит JetBrains MCP — проверено не на проекторе",
-          "Jmix CLI: jmix --help; команда A3 с --no-update прогнана в crm-cli-ready, кеш прогрет",
+          "Jmix CLI: jmix --help; A3 с --no-update прогнана в crm-cli-ready; каталога crm-cli нет",
           "Интернет и hotspot проверены, скриншоты в assets/; вкладки стенда и runbook, zoom"
         ],
         notes: [
-          "Jar стенда собираем накануне. Сборка — по разделу Build в demo/dynmodel-ai-agent/README.md ветки demo/ai-app: jmix и jmix-premium с master публикуются в local Maven (publishToMavenLocal), затем в jmix-crm выполняется ./gradlew bootJar, результат — build/libs/crm.jar. Сразу после сборки копируем его в ~/demo-jars/crm.jar (действие mkdir -p ... && cp -n ...): -n не перезаписывает уже сделанную копию, поэтому команда безопасна и на площадке; после пересборки jar старую копию удалить осознанно. Та же копия и тот же путь — в B-pre.",
+          "Jar стенда собираем накануне. Сборка — по разделу Build в demo/dynmodel-ai-agent/README.md ветки demo/ai-app: jmix и jmix-premium с master публикуются в local Maven (publishToMavenLocal), затем в jmix-crm выполняется ./gradlew bootJar, результат — build/libs/crm.jar. Сразу после сборки копируем его в ~/demo-jars/crm.jar (действие mkdir -p ... && { [ -f ... ] || cp ...; }): готовую копию команда не трогает и завершается успешно, поэтому безопасна и на площадке (cp -n не годится: на macOS при готовой копии он завершается с кодом 1); после пересборки jar старую копию удалить осознанно. Та же копия и тот же путь — в B-pre.",
           "Почему копия вне репозитория. На main bootJar пишет тот же build/libs/crm.jar, но это 3.0.3 без Dynamic Model, а Gate 2 агента в A2 (./gradlew --no-daemon clean test) удаляет build/ целиком; skill jmix-verify-bootrun прямо предупреждает, что подмена архива под работающим процессом даёт ошибки чтения ZIP и ресурсов. SNAPSHOT на площадке не пересобрать: нужен доступ к Jmix Premium и время. Альтернатива — отдельный worktree для demo/ai-app; решить при подготовке веток.",
-          "Прогон и сброс накануне. Прогнать сценарии A4–A6 на aura-light → ./stands.sh stop aura-light → удалить папку instances/aura-light (сброс по README: следующий старт создаёт свежую базу с демо-данными CRM, без сущностей, созданных на репетиции) → выключать ноутбук только после stop. Команду A3 один раз выполнить в запасной каталог: jmix --no-update new crm-cli --non-interactive --template application --locales en,ru --path /tmp/jmix-demo/crm-cli-ready. По README CLI офлайн работает только с шаблонами, закешированными в ~/.jmix/, а готовый каталог — запасной вариант A3 без сети. Каталога /tmp/jmix-demo/crm-cli быть не должно: в него A3 генерирует проект на сцене, а непустой каталог неинтерактивный режим отклоняет.",
+          "Прогон и сброс накануне. Прогнать сценарии A4–A6 на aura-light → ./stands.sh stop aura-light → удалить папку instances/aura-light (сброс по README: следующий старт создаёт свежую базу с демо-данными CRM, без сущностей, созданных на репетиции) → выключать ноутбук только после stop. Команду A3 один раз выполнить в запасной каталог: jmix --no-update new crm-cli --non-interactive --template application --locales en,ru --path /tmp/jmix-demo/crm-cli-ready. По README CLI офлайн работает только с шаблонами, закешированными в ~/.jmix/, а готовый каталог — запасной вариант A3 без сети. Каталога /tmp/jmix-demo/crm-cli быть не должно (его удаляет действие rm -rf в pre-flight): в него A3 генерирует проект на сцене, а непустой каталог неинтерактивный режим отклоняет.",
           "Fallback'и A4–A6 готовим после последнего сброса. Сброс стирает базу стенда, поэтому всё, на что опираются запасные варианты, создаётся после него. A4: под admin задать вопросы 1–4, в приватном окне под alice — вопросы 1–2; диалоги остаются в «Истории» каждого пользователя. A5: Администрирование → Отчёты → Отчёты → «Импортировать» → zip из demo/ai-app, в списке оба отчёта «Выручка клиентов». A6: из папки demo/dynmodel-ai-agent выполнить STAND_JAR=\"$HOME/demo-jars/crm.jar\" ./stands.sh start aura-dark, пройти на нём сценарий A6 и оставить стенд запущенным: порт 8092, JMX 9192, ещё около 1 ГБ памяти, на Claude, если задан ANTHROPIC_API_KEY. Скриншоты-fallback снять тогда же. В день демо pre-flight только проверяет эти артефакты; если чего-то нет — создать сразу, до прихода зала.",
           "Агент и промпт A2. Агент для A2 (claude, codex, opencode или junie — какой выбран) запустить, убедиться, что он залогинен и видит JetBrains MCP, — не на проекторе: ключ Context7 по README передаётся аргументом команды регистрации MCP и хранится в конфиге агента, поэтому список MCP-серверов и конфиг агента на экран не выводим. Промпт A2 есть только в demo/PROMPT.md ветки demo/agent-task — скопировать в буфер (действие с pbcopy) или держать открытым в отдельном окне.",
           "Ключи. Терминал, из которого стартует стенд, уже должен содержать ключи: JVM стенда читает окружение при старте, ключ, добавленный позже, требует stop и start. OPENROUTER_API_KEY — модель агента Dynamic Model (crm.dynmodel.api-key, DeepSeek v4.1 Flash через OpenRouter); без него стенд стартует, stands.sh печатает предупреждение, но каждый запрос к агенту падает с ошибкой модели. SPRING_AI_OPENAI_APIKEY — CRM AI-ассистент (spring.ai.openai.api-key в application.properties ветки 50-dynmodel-ai-agent, модель gpt-5.4); это отдельное подключение. ANTHROPIC_API_KEY stands.sh использует только для стенда aura-dark; aura-light работает на DeepSeek. Значения ключей на экран не выводим — только проверки set или MISSING.",
@@ -64,7 +64,7 @@ globalThis.DEMOS = {
           },
           {
             kind: "shell",
-            text: "mkdir -p \"$HOME/demo-jars\" && cp -n ~/IdeaProjects/jmix-crm/build/libs/crm.jar \"$HOME/demo-jars/crm.jar\""
+            text: "mkdir -p \"$HOME/demo-jars\" && { [ -f \"$HOME/demo-jars/crm.jar\" ] || cp ~/IdeaProjects/jmix-crm/build/libs/crm.jar \"$HOME/demo-jars/crm.jar\"; }"
           },
           {
             kind: "shell",
@@ -156,7 +156,11 @@ globalThis.DEMOS = {
           },
           {
             kind: "studio",
-            text: "Tool window Jmix AI → задать один пробный вопрос"
+            text: "Tool window Jmix AI (выделение в редакторе снять) → пробный вопрос — промпт из следующей строки"
+          },
+          {
+            kind: "studio",
+            text: "Как в Jmix 3 показать менеджеру только договоры его клиентов?"
           },
           {
             kind: "shell",
@@ -173,6 +177,10 @@ globalThis.DEMOS = {
           {
             kind: "shell",
             text: "mkdir -p /tmp/jmix-demo && jmix --no-update new crm-cli --non-interactive --template application --locales en,ru --path /tmp/jmix-demo/crm-cli-ready"
+          },
+          {
+            kind: "shell",
+            text: "rm -rf /tmp/jmix-demo/crm-cli"
           },
           {
             kind: "shell",
@@ -195,14 +203,14 @@ globalThis.DEMOS = {
         slide: [
           "Ось 1: AI пишет Jmix-код — toolkit, агент, Jmix CLI, Jmix AI (Studio AI Assistant)",
           "Ось 2: AI внутри приложения — CRM AI, AI JPQL в отчётах, Dynamic Model AI",
-          "Spring Boot модели знают; метаданные и XSD дают IDE поймать ошибки до запуска",
+          "Spring Boot знаком моделям; метаданные и XSD ловят ошибки до запуска",
           "Security by default: без ролей нет ни данных, ни UI; resource и row-level роли",
           "Vaadin Flow: UI на типизированной Java, без второго стека и REST-слоя",
           "Честно: агент уверенно выдумывает API — ловим инспекциями, тестами и ревью"
         ],
         notes: [
           "Карта на 5 минут. Две оси: первая — AI помогает писать Jmix-код (A1–A3: toolkit, агент делает фичу, Jmix CLI и Jmix AI — так в IDE называется Studio AI Assistant), вторая — AI работает внутри Jmix-приложения (A4–A6 на стенде b2b-crm). Сразу проговорить версии: toolkit и Jmix CLI работают с Jmix 3 уже сейчас; add-on AI Tools, на котором построен CRM-ассистент, есть в выпущенной 3.0 — ветка main jmix-crm на 3.0.3 его использует; AI-generated JPQL в отчётах и Dynamic Model AI с AI-чатом — это Jmix 3.1, она ещё не выпущена, стенд собран на 3.1.999-SNAPSHOT, то есть это preview.",
-          "Почему Jmix удобен агенту. Каждый пункт — о том, где ошибка агента становится видимой. Метаданные: сущности с @JmixEntity и fetch plans — фреймворк знает каждый атрибут, забытая аннотация падает сразу («MetaClass not found» при старте контекста), незагруженный атрибут подсвечивает инспекция. XML-экраны описаны схемами (view.xsd, layout.xsd): инспекции Studio ловят неразрешённые msg://, неверные property path и пропавшие data containers — то, чего не видит компилятор; агент получает их через JetBrains MCP. Spring Boot модели знают хорошо, и большая часть кода — обычный Spring. Liquibase changelog — обычный файл в diff, его ревьюит человек.",
+          "Почему Jmix удобен агенту. Каждый пункт — о том, где ошибка агента становится видимой. Метаданные: сущности с @JmixEntity и fetch plans — фреймворк знает каждый атрибут, забытая аннотация падает сразу («MetaClass not found» при старте контекста), незагруженный атрибут подсвечивает инспекция. XML-экраны описаны схемами (view.xsd, layout.xsd): инспекции Studio ловят неразрешённые msg://, неверные property path и пропавшие data containers — то, чего не видит компилятор; агент получает их через JetBrains MCP. Spring Boot моделям хорошо знаком, и большая часть кода — обычный Spring. Liquibase changelog — обычный файл в diff, его ревьюит человек.",
           "Security by default. Без resource roles пользователь не видит ни данных, ни UI; модель аддитивная, deny-политик нет: resource role — что можно делать, row-level role — какие строки видны. Для агента это значит: сущность без политики в роли обычный пользователь просто не увидит — ошибка заметна сразу и не становится утечкой. Vaadin Flow: UI — типизированная Java в той же JVM, что и бэкенд; второго JS/TS-стека и REST-слоя, который агент мог бы забыть защитить, нет. Источник, если спросят, — docs.jmix.io, Security → Resource Roles; на сцене не открываем.",
           "Честные ограничения. Skills из toolkit прямо пишут агенту: твои знания Jmix и Vaadin ненадёжны — модели уверенно выдумывают имена API (например, JmixButton.ClickEvent или io.jmix.flowui.dialogs.Dialogs). compileJava не видит ошибок в XML-дескрипторах, зелёный clean test не доказывает, что экран открывается, а инспекция может пропустить неизвестный компонент или атрибут. Attribute-политики применяют UI и сериализация, а не DataManager: сервис, написанный агентом, может записать атрибут, которого роль не даёт. Несуществующая CSS-переменная (--lumo-* в теме Aura) молча игнорируется, а код вне запроса пользователя — планировщики, @Async — гейты сами по себе не проверяют.",
           "Вывод и переход. Фреймворк не делает агента безошибочным — он сужает пространство ошибок и делает их видимыми раньше продакшена: в IDE, в тесте, на пустом экране без прав. Остальное закрывают окружение и дисциплина — об этом следующий блок про jmix-agent-toolkit. Не обещать залу, что AI сам напишет приложение."
@@ -364,7 +372,7 @@ globalThis.DEMOS = {
           },
           {
             kind: "studio",
-            text: "Пока зал читает diff — открыть вкладки: contract-detail-view.xml, ContractManagerRole.java, Contract.java, 050-contract.xml, тест из com.company.crm.test.contract (Navigate → File…)"
+            text: "Открыть вкладки: contract-detail-view.xml, ContractManagerRole.java, Contract.java, 050-contract.xml, тест из com.company.crm.test.contract (Navigate → File…)"
           },
           {
             kind: "studio",
@@ -413,7 +421,7 @@ globalThis.DEMOS = {
           "Что показать в ls -a. По умолчанию в проект ставится Agent Toolkit из ветки под мажорную версию Jmix: guidelines для Claude, Codex, OpenCode и Junie и локальные skills в .skills. Связать с A1: это те же файлы, что в jmix-crm, — проект с первой минуты готов для агента. Установка toolkit скачивает установщик с GitHub; без сети CLI выдаёт предупреждение, проект не теряется.",
           "Jmix AI — панель Studio AI Assistant. Чат-ассистент по Jmix на естественном языке; по docs.jmix.io он использует RAG по официальной документации и UI-примерам и доступен зарегистрированным пользователям. Открыть: иконка Jmix AI на правой панели IDE или Jmix tool window → Help → Jmix AI. Нужны интернет и вход в Jmix account, без входа панель пишет «Jmix AI is not available». Код проекта он видит только приложенный и текущее выделение: выделение больше одного символа в активном редакторе уходит в контекст автоматически, поэтому перед общим вопросом снять выделение. Лимит сообщений виден в панели; по документации — 100 запросов за 30 дней.",
           "Вопрос для демо. «Как в Jmix 3 показать менеджеру только договоры его клиентов?» — ожидаем ответ про row-level роль и @JpqlRowLevelPolicy; промпт копируется из шага. Позиционирование одной фразой: Jmix AI — спросить и разобраться, агент с toolkit — внести изменение в проект, CLI — создать проект из скрипта или агентом.",
-          "Подводные камни. Если /tmp/jmix-demo/crm-cli остался с репетиции, неинтерактивная генерация откажет — взять другое имя (pre-flight показывает содержимое /tmp/jmix-demo). Без сети генерация работает только с кешем ~/.jmix/; при сбое показать ls -a по /tmp/jmix-demo/crm-cli-ready — его pre-flight создал той же командой. Jmix AI без сети и входа не работает — держать скриншот ответа (assets/a3-*.png). Опция --version в исходниках CLI не объявлена — для проверки установки использовать jmix --help."
+          "Подводные камни. Если /tmp/jmix-demo/crm-cli остался с репетиции, неинтерактивная генерация откажет — взять другое имя (pre-flight его удаляет и показывает содержимое /tmp/jmix-demo). Без сети генерация работает только с кешем ~/.jmix/; при сбое показать ls -a по /tmp/jmix-demo/crm-cli-ready — его pre-flight создал той же командой. Jmix AI без сети и входа не работает — держать скриншот ответа assets/a3-jmix-ai.png (последнее действие блока). Опция --version в исходниках CLI не объявлена — для проверки установки использовать jmix --help."
         ],
         actions: [
           {
@@ -447,6 +455,10 @@ globalThis.DEMOS = {
           {
             kind: "say",
             text: "Jmix AI — спросить и разобраться, агент — внести изменение, CLI — создать проект"
+          },
+          {
+            kind: "shell",
+            text: "open ~/IdeaProjects/jmix-demo-runbook/assets/a3-jmix-ai.png"
           }
         ]
       },
@@ -491,8 +503,8 @@ globalThis.DEMOS = {
         id: "A4",
         title: "AI внутри приложения: CRM AI",
         minutes: 12,
+        flow: ["Вопрос", "JPQL от модели", "Валидация", "Права пользователя", "Ответ + ссылки"],
         slide: [
-          "Вопрос на естественном языке → JPQL → валидация → ответ со ссылками на записи",
           "Запрос выполняется с правами текущего пользователя: READ на весь граф, row-level",
           "Один вопрос — разные ответы: admin видит всех клиентов, alice только своих",
           "@Secret (3.0.3) и @ExcludeFromAi (3.1 preview): атрибут закрыт для модели",
@@ -504,7 +516,7 @@ globalThis.DEMOS = {
           "Где смотреть JPQL. В чате запроса не видно: системный промпт CRM запрещает показывать пользователю технические детали. Запрос видно в логе стенда: строки executeQuery(jpql=…) и Access conditions applied пишутся на уровне DEBUG. В 50-dynmodel-ai-agent стоит logging.level.io.jmix.aitools.dataload=INFO, поэтому в demo/ai-app это свойство должно быть DEBUG. На прогревочном вопросе в pre-flight убедиться, что строка executeQuery(jpql= появляется в логе. После A2 рабочая копия ~/IdeaProjects/jmix-crm стоит на demo/agent-task (от main): там нет demo/ и stands.sh, поэтому команда stands.sh status упадёт. Статус проверяем curl по порту: любой код, кроме 000, значит, что стенд отвечает. Папка instances/aura-light не отслеживается git и переживает checkout, лог читается по прежнему пути. Если стенды вынесены в отдельный worktree, путь к логу брать от него. tail открыть в самом начале блока во втором терминале, который видит зал: tail -f показывает только новые строки.",
           "Вход и вопрос 1, минуты 0–3. 0:00–1:00: терминал с tail, вход admin / admin, на экране входа выбрать Русский (ответ приходит на языке пользователя), главное меню → CRM AI. 1:00–3:00: вопрос 1 живьём: «Сколько у нас клиентов и кто топ-3 по сумме заказов?». Пока ждём, проговорить механику: AI Tools описывает модели доменную модель (aitls_getAvailableEntities, aitls_getDomainModelForEntities), модель пишет JPQL и вызывает aitls_executeQuery, запрос валидируется, проверяется доступ, и он выполняется через DataManager от имени пользователя. Системный промпт требует сначала искать отчёты (getAvailableReports), поэтому ответ — цепочка из нескольких вызовов и идёт не мгновенно. Показать строку executeQuery(jpql=…) в терминале.",
           "История и контекст, минуты 3–7. 3:00–4:30: «История» → диалоги, записанные после последнего сброса (их проверил pre-flight). Вопрос 2: «Сколько заказов в статусах «Новый» и «Принят» и на какую сумму?» (по мотивам примера из README про пресейл и ожидание оплаты). Вопрос 3: «Как часто покупает Connelly LLC? Покажи последние заказы со ссылками». Кликнуть ссылку на запись в ответе и обратить внимание на автоматически сгенерированные названия диалогов. 4:30–7:00: вопрос 4 живьём: «Добавить контекст → Добавить сущность CRM → Клиенты → Connelly LLC», затем «Подготовь Client 360 по этому клиенту за последний год». В CrmAiToolsConfig разрешены только Client 360 Report и Category Cashflow Risk Allocation Report. Показать «Загрузить файл(ы)» и панель «Контекст».",
-          "Окно alice и границы, минуты 7–12. 7:00–10:00: alice (абзац «Безопасность»). 10:00–11:30: @ExcludeFromAi и @Secret (абзац «@Secret и @ExcludeFromAi»). 11:30–12:00: переход к A5. Опционально, если есть запас: вопросы про контакты и пользователей, бонус про Hackett.",
+          "Окно alice и границы, минуты 7–12. 7:00–10:00: alice (абзац «Безопасность»); ожидаемо в вопросе 2 заказов «Новый»/«Принят» у alice 13/19, у admin 25/40 — цифры только здесь: шаги в панели зеркала видит зал. 10:00–11:30: @ExcludeFromAi и @Secret (абзац «@Secret и @ExcludeFromAi»). 11:30–12:00: переход к A5. Опционально, если есть запас: вопросы про контакты и пользователей, бонус про Hackett.",
           "Безопасность. Открыть приватное окно, обычное оставить под admin: у стенда своя cookie сессии. Войти alice / alice и живьём задать вопрос 1 дословно. В терминале показать строку Access conditions applied: к запросу подмешано условие по accountManager. Вопрос 2 показать из диалога alice, записанного после последнего сброса. Ожидаемые цифры посчитаны по CSV демо-данных ветки. У admin 30 клиентов, топ-3: Hackett, Corkery and Mraz / Batz-Goldner / Connelly LLC. У alice 13 клиентов, топ-3: Connelly LLC / Bradtke, Kozey and Rosenbaum / Lubowitz Inc. Заказов «Новый»/«Принят» у admin 25/40, у alice 13/19. Причина: у alice ресурсная роль Manager и row-level роль Only My Accounts (only-my-accounts-rl). Для Client условие {E}.accountManager.id = :current_user_id. Order, Invoice, Contact (и ClientUserActivity) фильтруются через client.accountManager, OrderItem — через order.client.accountManager, Payment — через invoice.client.accountManager. Пользователь manager из README видит всех клиентов, для сравнения он не подходит. Диалогов admin в «Истории» alice нет: row-level роль ai-chat-user-rl, условие createdBy = :current_user_username. Бонус: под alice спросить про Hackett, Corkery and Mraz (клиент Robert Taylor) — ассистент его не найдёт. Цифры сверить на репетиции: если базу стенда меняли, они поплывут.",
           "Защитные механизмы AI Tools — проговаривать во время ожидания ответов. READ проверяется для каждой сущности графа запроса: join, подзапросы, пути, а не только корень. Row-level JPQL-политики применяются ко всем сущностям графа, а запрос, который нельзя отфильтровать, отклоняется. Выбрать сущность целиком (select c) нельзя, только значения атрибутов. @SystemLevel скрыт только из discovery и остаётся доступным для запросов (флаг jmix.aitools.dataload.exclude-system-level-attributes). Непостоянные атрибуты исключены: в JPQL их нет.",
           "@Secret и @ExcludeFromAi. @Secret (есть в выпущенной 3.0.3) убирает атрибут из индекса: модель его не видит, запрос к нему отклоняется как несуществующий путь (propertyPath.invalid), значение вырезается из результата. В CRM так помечен User.password. @ExcludeFromAi (io.jmix.aitools, только 3.1 preview) — граница в коде на сущность или поле. Она стоит выше include/exclude-свойств jmix.aitools.dataload.*, и переменной окружения её не открыть. В demo/ai-app ею помечены Contact.phone и Contact.email (персональные данные): в приложении контакты с телефонами видны, модели — нет. Код показать без checkout через git show.",
@@ -538,7 +550,7 @@ globalThis.DEMOS = {
           },
           {
             kind: "studio",
-            text: "CRM AI → История → записанные диалоги: вопрос 2 (заказы «Новый»/«Принят») и вопрос 3 (Connelly LLC) → клик по ссылке на запись"
+            text: "CRM AI → История → диалоги: вопрос 2 (заказы «Новый»/«Принят») и вопрос 3 (Connelly LLC) → клик по ссылке на запись"
           },
           {
             kind: "studio",
@@ -562,7 +574,7 @@ globalThis.DEMOS = {
           },
           {
             kind: "studio",
-            text: "Окно alice → CRM AI → История → записанный диалог alice с вопросом 2 (13/19 против 25/40 у admin), диалогов admin нет"
+            text: "Окно alice → CRM AI → История → диалог alice с вопросом 2; диалогов admin в списке нет"
           },
           {
             kind: "shell",
@@ -590,7 +602,7 @@ globalThis.DEMOS = {
           },
           {
             kind: "studio",
-            text: "Если модель недоступна: CRM AI → История → диалоги admin и alice, записанные после последнего сброса; нет и их — скриншоты"
+            text: "Если модель недоступна: CRM AI → История → диалоги admin и alice; нет и их — скриншоты"
           },
           {
             kind: "shell",
@@ -600,11 +612,11 @@ globalThis.DEMOS = {
       },
       {
         id: "A5",
-        title: "AI-generated JPQL в отчётах",
+        title: "AI JPQL в отчётах",
         minutes: 8,
+        flow: ["Промпт", "«Сгенерировать запрос»", "JPQL виден и правится", "Запуск без модели"],
         slide: [
           "«ИИ-сгенерированный JPQL» — новый тип набора данных, только в Jmix 3.1 preview",
-          "Промпт → «Сгенерировать запрос» → JPQL виден и редактируется",
           "Ошибочный черновик — одна попытка исправления, запрос хранится в отчёте",
           "Параметры отчёта становятся именованными параметрами JPQL",
           "Запуск без модели: сохранённый JPQL через DataManager с правами пользователя",
@@ -662,11 +674,10 @@ globalThis.DEMOS = {
         title: "Dynamic Model AI",
         minutes: 15,
         exit: "Точка выхода №2: сократить до 8 минут — только шаги с меткой [8] (1, 3, 8, 9, 13)",
+        flow: ["Запрос", "План", "Подготовка", "Проверка", "Применение"],
         slide: [
           "Dynamic Model (Premium, есть в 3.0) + AI-агент и чат — Jmix 3.1 preview",
-          "Запрос словами → план → дополнение → «Подтвердить план» → «Применить»",
-          "Этапы на виду: Запрос → План → Подготовка → Проверка → Применение",
-          "Агент сам не публикует: «Применить» нажимает человек",
+          "План можно дополнить; «Подтвердить план» и «Применить» нажимает только человек",
           "Новые экраны сразу в меню и готовы к данным — без кода и перевыпуска",
           "Границы: не читает бизнес-данные, не меняет тип опубликованного поля"
         ],
@@ -821,17 +832,17 @@ globalThis.DEMOS = {
         minutes: 5,
         slide: [
           "Уже доступно: AI Tools в 3.0 (CRM AI), Jmix AI в Studio, Agent Toolkit, Jmix CLI",
-          "Jmix 3.1 preview: AI-generated JPQL в отчётах, AI-агент Dynamic Model",
+          "Jmix 3.1 preview: AI JPQL в отчётах, AI-агент Dynamic Model",
           "Завтра: toolkit в проект (Studio 3.0+ → AI Agents Toolkit) + JetBrains MCP",
           "Онлайн-демо B2B CRM: demo.jmix.io/b2b-crm",
           "GitHub: jmix-framework/jmix-agent-toolkit · jmix-cli · jmix-crm",
-          "Ваши вопросы"
+          "Материалы демо: github.com/Fedoseew/jmix-demo-runbook — и ваши вопросы"
         ],
         notes: [
           "Что из показанного где. Выпущено: ветка main jmix-crm живёт на Jmix 3.0.3 и уже подключает io.jmix.aitools:jmix-aitools-starter, то есть CRM AI из блока A4 с data-load (генерация и проверка JPQL под правами пользователя) работает на выпущенной версии. Agent Toolkit и Jmix CLI — не часть Jmix 3.0, а отдельные репозитории со своим циклом: toolkit для Jmix 3 берётся с ветки v3 и ставится из Studio 3.0+; CLI пока не дошёл до 1.0 (теги v0.x), ставится своим installer и несёт свою Java. Jmix AI — панель релизной Studio для Jmix 3.0. Preview, Jmix 3.1 (ещё не выпущен, master и 3.1.999-SNAPSHOT): тип набора данных полосы «AI-generated JPQL» в отчётах (DataSetType.LLM, в release_3_0 его нет), аннотация @ExcludeFromAi в AI Tools, AI-агент Dynamic Model (jmix-dynmodel-ai) и чат-компонент jmix-aichat. Сам Dynamic Model как аддон Premium есть и в 3.0, новое в 3.1 именно агент.",
           "Как начать завтра. Первое — toolkit в свой проект: в Studio окно Jmix → Settings → AI Agents Toolkit, мастер проведёт по шагам (skills, guidelines-блок, MCP-серверы, Playwright). Без Studio — install.sh из README репозитория; на сцене не запускать, только показать ссылку. Проекты, созданные Jmix CLI, получают toolkit сразу (отключается флагом --no-agents-toolkit). Второе — JetBrains MCP: в IntelliJ Settings → Tools → MCP Server → Enable MCP Server, проект держать открытым в IDE. Оба диалога уже показаны в A1, в IDE не возвращаемся. Третье — правила гигиены: агент работает в отдельной ветке, результат проверяется запуском приложения и инспекциями Studio, prod-ключи агенту не даём. Четвёртое — онлайн-демо B2B CRM, чтобы посмотреть само приложение; CRM AI — локально на jmix-crm main с ключом SPRING_AI_OPENAI_APIKEY, пункт меню CRM AI. Включён ли CRM AI в онлайн-демо, проверить перед встречей; если нет, так и сказать.",
           "Q&A: собирать вопросы, записывать их; на то, что требует проверки, ответить после встречи. Частые вопросы и короткие ответы. Когда 3.1 — дату не называть, следить за анонсами на jmix.io. Лицензии — Dynamic Model и AI Chat входят в Jmix Premium, AI Tools и Reports лежат в открытом репозитории фреймворка jmix-framework/jmix. Куда уходят данные — CRM AI выполняет запросы с правами текущего пользователя, @Secret-атрибуты закрыты, в 3.1 добавляется @ExcludeFromAi; агент Dynamic Model работает с описанием модели и бизнес-данные не читает (это было видно на шаге с отказом). Какая модель — CRM подключает Spring AI через OpenAI-стартер, агент Dynamic Model на стенде ходит в DeepSeek через OpenRouter, а на стенде aura-dark может работать на Claude.",
-          "Если время вышло: оставить на экране слайд со ссылками, вопросы собрать в чат или после встречи. Ссылки на репозитории и онлайн-демо — в действиях ниже, открывать их из runbook, а не набирать вручную."
+          "Если время вышло: оставить на экране слайд со ссылками, вопросы собрать в чат или после встречи. Ссылки на репозитории и онлайн-демо — в действиях ниже, открывать их из runbook, а не набирать вручную. Материалы встречи — этот runbook с заметками, шагами и ссылками обоих демо: github.com/Fedoseew/jmix-demo-runbook, туда же ведёт QR на заставке."
         ],
         actions: [
           {
@@ -853,6 +864,10 @@ globalThis.DEMOS = {
           {
             kind: "url",
             text: "https://demo.jmix.io/b2b-crm/login"
+          },
+          {
+            kind: "url",
+            text: "https://github.com/Fedoseew/jmix-demo-runbook"
           },
           {
             kind: "say",
@@ -951,7 +966,7 @@ globalThis.DEMOS = {
           },
           {
             kind: "shell",
-            text: "(cd ~/IdeaProjects/jmix-crm && git checkout demo/ai-app && mkdir -p \"$HOME/demo-jars\" && cp -n build/libs/crm.jar \"$HOME/demo-jars/crm.jar\")"
+            text: "(cd ~/IdeaProjects/jmix-crm && git checkout demo/ai-app && mkdir -p \"$HOME/demo-jars\" && { [ -f \"$HOME/demo-jars/crm.jar\" ] || cp build/libs/crm.jar \"$HOME/demo-jars/crm.jar\"; })"
           },
           {
             kind: "shell",
@@ -1085,6 +1100,7 @@ globalThis.DEMOS = {
         id: "B2",
         title: "Приложение из существующей БД",
         minutes: 15,
+        flow: ["Существующая БД", "JPA-сущности", "Экраны", "Приложение с данными"],
         slide: [
           "Есть живая PostgreSQL со схемой и данными CRM, а кода приложения нет",
           "Studio: Generate Model from Database — JPA-сущности прямо из таблиц",
@@ -1366,15 +1382,15 @@ globalThis.DEMOS = {
         minutes: 5,
         slide: [
           "Документация и туториал: docs.jmix.io — начните с Tutorial и Guides",
-          "Studio: при первом входе trial Sprint на 28 дней, без лимита размера проекта",
+          "Фреймворк — Apache 2.0; premium Studio — подписка, trial Sprint 28 дней",
           "Онлайн-демо B2B CRM: demo.jmix.io/b2b-crm, исходники на GitHub",
           "Вопросы — forum.jmix.io, обучение команды — jmix.io/training",
-          "Фреймворк и большинство add-ons — Apache 2.0, Studio premium — по подписке",
+          "Материалы демо и runbook: github.com/Fedoseew/jmix-demo-runbook",
           "Шаг на завтра: копия своей БД → Generate Model → экраны → роль"
         ],
         notes: [
           "Итог одной фразой: из существующей базы получили приложение со связями, экранами, миграцией и ролью, почти не написав кода. Всё показанное в B2–B3 — возможности Studio на релизной линейке Jmix 3.0 (crm-from-db собран на 3.0.x, как сказано в B0). CRM AI тоже есть в 3.0, а AI-генерация JPQL в отчётах и Dynamic Model AI появятся в Jmix 3.1, который ещё не выпущен.",
-          "Вкладки со ссылками открыть заранее. Так мы не зависим от сети: документация https://docs.jmix.io/jmix/intro.html, туториал из 9 глав https://docs.jmix.io/jmix/tutorial/index.html, гайды https://docs.jmix.io/jmix/guides.html, страница про генерацию модели из БД https://docs.jmix.io/jmix/studio/reverse-engineering.html, подписка и trial https://docs.jmix.io/jmix/studio/subscription.html, онлайн-демо https://demo.jmix.io/b2b-crm/login, форум https://forum.jmix.io/, обучение https://www.jmix.io/training/.",
+          "Вкладки со ссылками открыть заранее. Так мы не зависим от сети: документация https://docs.jmix.io/jmix/intro.html, туториал из 9 глав https://docs.jmix.io/jmix/tutorial/index.html, гайды https://docs.jmix.io/jmix/guides.html, страница про генерацию модели из БД https://docs.jmix.io/jmix/studio/reverse-engineering.html, подписка и trial https://docs.jmix.io/jmix/studio/subscription.html, онлайн-демо https://demo.jmix.io/b2b-crm/login, форум https://forum.jmix.io/, обучение https://www.jmix.io/training/, материалы демо и этот runbook https://github.com/Fedoseew/jmix-demo-runbook (QR — на заставке).",
           "Про подписку честно: дизайнеры сущностей, view, ролей, меню, fetch plan, JPQL и генерация Liquibase-changelog — premium-функции Studio. Без подписки они доступны в небольших проектах: до 10 сущностей и до 10 ролей. При первом входе в Studio выдаётся trial Sprint на 28 дней, он работает в проектах любого размера. Статус подписки: Jmix tool window → Settings → Account Information. Фреймворк распространяется под Apache 2.0, как и большинство add-ons.",
           "Следующие шаги для группы: поставить Studio и пройти туториал; взять копию своей базы (не прод) и прогнать Generate Model from Database; посмотреть код B2B CRM на GitHub (jmix-framework/jmix-crm) как пример структуры большого приложения; кто хочет AI — поставить jmix-agent-toolkit в проект. Частый вопрос: можно ли подключить вторую базу — да, как Additional Data Store, и генерация модели работает и для неё. HSQLDB в файловом или in-memory режиме для генерации модели не подходит."
         ],
@@ -1410,6 +1426,10 @@ globalThis.DEMOS = {
           {
             kind: "url",
             text: "https://github.com/jmix-framework/jmix-agent-toolkit"
+          },
+          {
+            kind: "url",
+            text: "https://github.com/Fedoseew/jmix-demo-runbook"
           },
           {
             kind: "url",

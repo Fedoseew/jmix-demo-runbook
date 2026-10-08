@@ -88,14 +88,21 @@
       const p = cls === 'cur' ? `;--p:${progressPct(x)}%` : '';
       return `<span class="st-seg ${cls}" style="--m:${x.minutes}${p}"></span>`;
     }).join('');
+    const chips = Runbook.flowOf(b);
+    const flow = chips.length
+      ? `<ol class="st-flow" aria-label="Процесс">${chips.map(t => `<li><span>${Runbook.typo(t)}</span></li>`).join('')}</ol>`
+      : '';
+    // Заставку видят, пока зал рассаживается: QR и адрес материалов (QR — символ спрайта, без сети).
     const inner = b.pre
       ? `<div class="h-hero">${logo('h-logo')}<p class="h-kicker">Живое демо</p><h1 class="h-title">${Runbook.typo(demoName(state.demo))}</h1>
-           <div class="st-rule"></div><p class="h-when">Скоро начинаем</p></div>
+           <div class="st-rule"></div><p class="h-when">Скоро начинаем</p>
+           <div class="h-repo"><svg class="h-qr" viewBox="0 0 41 41" role="img" aria-label="QR-код репозитория"><use href="#qr-repo"/></svg>
+             <p><span class="h-cap">Материалы</span><span class="h-url">github.com/Fedoseew/<wbr>jmix-demo-runbook</span></p></div></div>
          <div class="h-agenda"><p class="h-cap">Программа</p>
            <ol class="h-list">${talks.map((x, i) => `<li><span class="n">${two(i + 1)}</span><span>${Runbook.typo(x.title)}</span></li>`).join('')}</ol></div>`
       : `<div class="st-top"><span class="st-count"><b>${two(talks.indexOf(b) + 1)}</b> / ${two(talks.length)}</span><i></i><span>${Runbook.esc(demoName(state.demo))}</span>${logo('st-logo')}</div>
          <h1 class="st-title">${Runbook.typo(b.title)}</h1>
-         <div class="st-rule"></div><ul class="st-list">${b.slide.map(t => `<li>${Runbook.typo(t)}</li>`).join('')}</ul>`;
+         <div class="st-rule"></div>${flow}<ul class="st-list">${b.slide.map(t => `<li>${Runbook.typo(t)}</li>`).join('')}</ul>`;
     return `<section class="stage${b.pre ? ' hold' : ''}${state.light ? ' light' : ''}" aria-label="Слайд ${Runbook.esc(b.id)}">
       <svg class="st-wm" viewBox="0 0 48 48" aria-hidden="true"><use href="#logo-mark"/></svg>
       <div class="st-inner">${inner}</div>
@@ -181,7 +188,7 @@
         <div class="t-row"><span class="cap">Чек-лист</span><span class="t-live wait">таймер стоит</span></div>
         <div class="t-big"><strong data-t="checked">0/${b.slide.length}</strong><span>пунктов</span></div>
         <div class="t-bar ok" data-t="bar"><i></i></div>
-        <p class="t-idle">Зал видит заставку. Таймер стартует сам при переходе к первому блоку и встаёт только по <kbd>T</kbd>: ${t.core} мин + ${t.all - t.core} опц.</p></section>`;
+        <p class="t-idle">Зал видит заставку. Таймер стартует сам при переходе к первому блоку, переход на заставку его останавливает, <kbd>T</kbd> — пауза / старт. План: ${t.core} мин + ${t.all - t.core} опц.</p></section>`;
     }
     return `<section class="panel timer" aria-label="Таймер блока">
       <div class="t-row"><span class="cap">Блок ${Runbook.esc(b.id)} · осталось</span><span class="t-live" data-t="live">идёт</span></div>
@@ -250,7 +257,7 @@
       : '';
     return `<section class="panel col acts" aria-label="Действия">
       <div class="col-head"><h2>Действия</h2><span class="count">шаг <b data-stepno>1</b> / ${list.length}</span>
-        <span class="hint"><kbd>J</kbd><kbd>K</kbd> шаг · <kbd>Space</kbd> = <kbd>J</kbd></span><span class="spacer"></span>${toggle}</div>
+        <span class="hint"><kbd>J</kbd><kbd>K</kbd> шаг<span class="sp"> · <kbd>Space</kbd> = <kbd>J</kbd></span></span><span class="spacer"></span>${toggle}</div>
       <div class="col-body"><ol class="steps">${items}</ol></div></section>`;
   }
 
@@ -264,6 +271,7 @@
         <span class="c-pill" data-link><i></i>Сцена<span data-link-text></span></span>
         <div class="c-keys"><span><kbd>←</kbd><kbd>→</kbd> блок</span><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>C</kbd> копия</span><span><kbd>T</kbd> таймер</span><span><kbd>R</kbd> сброс</span><span><kbd>1</kbd><kbd>2</kbd> демо</span><span><kbd>F</kbd> экран</span><span><kbd>L</kbd> свет</span></div>
         <p class="c-away">Окно не в фокусе — клавиши уходят в другое окно; щёлкните по консоли</p>
+        <a class="c-gh" href="https://github.com/Fedoseew/jmix-demo-runbook" target="_blank" rel="noopener" title="Репозиторий runbook на GitHub" aria-label="GitHub: репозиторий runbook">${icon('i-github')}<span>GitHub</span></a>
         <span class="c-clock" data-clock>${clockText()}</span>
       </header>
       ${agendaHTML()}
@@ -617,7 +625,7 @@
   }
 
   // ---------------- навигация ----------------
-  // Таймер встаёт только по T: при переходе идущий идёт дальше, с заставки на первый блок стартует сам (Runbook.leaveBlock).
+  // При переходе идущий таймер идёт дальше, на заставке встаёт, с заставки на первый блок стартует сам (Runbook.leaveBlock); T — пауза / старт.
   function moveTo(patch) {
     const next = { ...state, ...patch };
     const to = DEMOS[next.demo].blocks[next.index];

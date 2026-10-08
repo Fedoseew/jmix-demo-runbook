@@ -170,3 +170,44 @@ test('справка «?» перечисляет каждую клавишу, �
   assert.match(app, /st-hint[^\n]*<kbd>\?<\/kbd>/, 'подсказка сцены не называет ?');
   assert.match(app, /d-legend[^\n]*<kbd>\?<\/kbd>/, 'легенда панели не называет ?');
 });
+
+const appSrc = readText('app.js');
+const fnSrc = name => appSrc.match(new RegExp(`function ${name}\\([\\s\\S]*?\\n  \\}`))?.[0] ?? '';
+
+test('meta description и Open Graph: превью ссылки, без внешних запросов', () => {
+  const meta = (attr, name) => html.match(new RegExp(`<meta ${attr}="${name}" content="([^"]+)">`))?.[1];
+  assert.ok(meta('name', 'description')?.length > 50, 'нет description');
+  assert.ok(meta('property', 'og:title'), 'нет og:title');
+  assert.ok(meta('property', 'og:description')?.length > 50, 'нет og:description');
+  assert.equal(meta('property', 'og:type'), 'website');
+  assert.equal(meta('property', 'og:url'), 'https://fedoseew.github.io/jmix-demo-runbook/');
+  assert.equal(meta('property', 'og:image'), 'https://fedoseew.github.io/jmix-demo-runbook/docs/images/stage.jpg');
+});
+
+test('заставка: QR репозитория из спрайта (офлайн) и подпись с адресом', () => {
+  assert.match(html, /<symbol id="qr-repo" viewBox="0 0 41 41"/);
+  assert.match(fnSrc('stageHTML'), /<use href="#qr-repo"\/>/);
+  assert.match(fnSrc('stageHTML'), /github\.com\/Fedoseew\/<wbr>jmix-demo-runbook/);
+  const w = Number(cssRule('.h-qr')?.match(/width:\s*(\d+(?:\.\d+)?)cqw/)?.[1]);
+  assert.ok(w >= 16, `QR ${w}cqw: мелкий для зала`);
+});
+
+test('консоль: ссылка на GitHub в шапке открывается в новой вкладке; на сцене ссылок нет', () => {
+  assert.match(fnSrc('consoleHTML'), /<a class="c-gh" href="https:\/\/github\.com\/Fedoseew\/jmix-demo-runbook" target="_blank" rel="noopener"/);
+  assert.doesNotMatch(fnSrc('stageHTML'), /<a\s/);
+  assert.ok(html.includes('id="i-github"'), 'нет иконки i-github');
+});
+
+test('шапка шагов A6: счётчик не сжимается, подсказка уступает место тумблеру 8′ (1024–1279px)', () => {
+  assert.match(html, /\.acts \.col-head \.count \{ flex-shrink: 0; \}/);
+  assert.match(html, /@media \(max-width: 1279px\) \{ \.acts \.col-head \.hint \.sp \{ display: none; \} \}/);
+  assert.match(html, /@media \(max-width: 1119px\) \{ \.acts \.col-head:has\(\.tgl\) \.hint \{ display: none; \} \}/);
+  assert.match(fnSrc('actionsHTML'), /<span class="sp">/);
+});
+
+test('полоса процесса — под чертой заголовка; на светлой сцене стрелки ≥ 3:1 к фону (WCAG 1.4.11)', () => {
+  assert.match(fnSrc('stageHTML'), /st-rule"><\/div>\$\{flow\}<ul class="st-list"/);
+  const arrow = cssRule('.stage.light')?.match(/--s-arrow:\s*(#[0-9A-Fa-f]{6})/)?.[1];
+  assert.ok(arrow, 'нет --s-arrow у .stage.light');
+  for (const bg of ['#FFFFFF', '#ECEDF6']) assert.ok(contrast(arrow, bg) >= 3, `${arrow} на ${bg}: ${contrast(arrow, bg).toFixed(2)}`);
+});

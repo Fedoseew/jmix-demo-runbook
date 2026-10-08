@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jmix Demo Runbook</title>
+<meta name="description" content="Офлайн-runbook докладчика для двух живых демо Jmix: «AI × Jmix» и «Jmix с нуля». Слайды для зала, консоль с заметками, шагами и таймером, панель для зеркала — один index.html без сборки и сети.">
+<meta property="og:title" content="Jmix Demo Runbook">
+<meta property="og:description" content="Офлайн-runbook докладчика для двух живых демо Jmix: «AI × Jmix» и «Jmix с нуля». Слайды для зала, консоль с заметками, шагами и таймером, панель для зеркала — один index.html без сборки и сети.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://fedoseew.github.io/jmix-demo-runbook/">
+<meta property="og:image" content="https://fedoseew.github.io/jmix-demo-runbook/docs/images/stage.jpg">
 <style>
   :root {
     --navy: #17124B; --yellow: #FDB42B; --pink: #FC1264; --pink-text: #FF6B9D; --green: #41B883; --cyan: #25CDE3;
@@ -27,6 +33,7 @@
   .stage {
     --s-title: var(--white); --s-text: var(--ink); --s-muted: var(--muted); --s-logo: var(--ink); --s-wm: #fff;
     --s-track: rgb(219 221 225 / .17); --s-done: rgb(219 221 225 / .55); --s-line: rgb(219 221 225 / .14);
+    --s-arrow: var(--yellow); --s-chip: rgb(255 255 255 / .07); --s-chip-line: rgb(219 221 225 / .3);
     position: relative; container-type: inline-size; aspect-ratio: 16 / 9; width: 100%; overflow: hidden;
     color: var(--s-text); font-family: var(--sans);
     background:
@@ -38,6 +45,7 @@
   .stage.light {
     --s-title: var(--navy); --s-text: #26215E; --s-muted: #55528A; --s-logo: var(--navy); --s-wm: var(--navy);
     --s-track: rgb(23 18 75 / .12); --s-done: rgb(23 18 75 / .42); --s-line: rgb(23 18 75 / .12);
+    --s-arrow: #A86E00; --s-chip: rgb(23 18 75 / .05); --s-chip-line: rgb(23 18 75 / .22); /* жёлтая стрелка на белом — 1.8:1 */
     background:
       radial-gradient(60% 85% at 95% -5%, rgb(201 197 245 / .55) 0%, rgb(201 197 245 / 0) 70%),
       linear-gradient(165deg, #FFFFFF 0%, #F5F6FA 55%, #ECEDF6 100%);
@@ -58,6 +66,16 @@
   .st-list li { position: relative; padding-left: 1.15em; text-wrap: balance; }
   .st-list li::before { content: ""; position: absolute; left: .1em; top: .46em; width: .34em; height: .34em;
     background: var(--yellow); border-radius: .05em; transform: rotate(45deg); }
+  /* полоса процесса (block.flow): шаги-чипы и жёлтые стрелки под чертой заголовка, над тезисами */
+  .st-flow { flex: none; display: flex; flex-wrap: wrap; align-items: center; row-gap: .8cqw; margin: -.2cqw 0 2.3cqw; padding: 0;
+    list-style: none; font-size: 1.8cqw; line-height: 1.2; }
+  .st-flow li { display: flex; align-items: center; white-space: nowrap; }
+  .st-flow li:not(:last-child)::after { content: "→"; padding: 0 .4em; font-weight: 700; color: var(--s-arrow); } /* перенос строки — после стрелки */
+  .st-flow li > span { padding: .36em .62em; border-radius: .45em; background: var(--s-chip); border: 1px solid var(--s-chip-line);
+    color: var(--s-title); font-weight: 600; }
+  /* миниатюра в консоли: системный шрифт мельче 7px шире пропорции (на ~14% и больше), и полоса A4/A5 переносилась бы
+     или срезалась, хотя у зала она в одну строку. Здесь шрифт полосы мельче на эту разницу: одна строка, как у зала. */
+  .now-shot .st-flow { flex-wrap: nowrap; font-size: 1.6cqw; }
   .nw { white-space: nowrap; } /* слово через дефис («CRM-система») не рвётся: typo() */
 
   /* пре-флайт на сцене: заставка «скоро начнём», чек-лист живёт только в консоли */
@@ -67,6 +85,11 @@
   .h-title { margin: .9cqw 0 0; font-size: 6.2cqw; line-height: 1.02; font-weight: 750; letter-spacing: -.028em; color: var(--s-title); text-wrap: balance; }
   .h-when { margin: 0; font-size: 2.4cqw; color: var(--s-text); }
   .h-when b { color: var(--s-title); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .h-repo { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 2cqw; margin-top: 3.4cqw; }
+  .h-qr { display: block; width: 16cqw; height: 16cqw; border-radius: .5cqw; } /* белое поле QR — и на тёмной, и на светлой сцене */
+  .h-repo p { margin: 0; }
+  .h-repo .h-cap { display: block; margin: 0 0 .7cqw; }
+  .h-url { display: block; font-size: 1.9cqw; line-height: 1.25; font-weight: 600; color: var(--s-title); }
   .h-agenda { border-left: .1cqw solid var(--s-line); padding: .6cqw 0 .6cqw 4cqw; }
   .h-cap { margin: 0 0 1.7cqw; font-size: 1.6cqw; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--s-muted); }
   .h-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.05cqw; font-size: 2.2cqw; line-height: 1.22; }
@@ -108,7 +131,7 @@
   .c-brand { display: flex; align-items: center; gap: 10px; }
   .c-brand svg { height: 26px; width: auto; color: var(--ink); }
   .c-brand .cap { border-left: 1px solid var(--line); padding-left: 10px; letter-spacing: .03em; white-space: nowrap; }
-  @media (max-width: 1399px) { .c-brand .cap { display: none; } } /* место легенде клавиш: шапка в одну строку на 1280 */
+  @media (max-width: 1599px) { .c-brand .cap { display: none; } } /* место легенде клавиш и GitHub: шапка в одну строку на 1280 и 1440 */
   .seg-ctl { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
   .seg-ctl button { border: 0; background: transparent; border-radius: 7px; padding: 6px 10px; cursor: pointer;
     font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -126,6 +149,11 @@
   .c-away { display: none; margin: 0 0 0 auto; font-size: 14px; color: var(--yellow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   html.away .c-keys { display: none; }
   html.away .c-away { display: block; }
+  .c-gh { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); text-decoration: none; white-space: nowrap; padding: 4px 2px; }
+  .c-gh:hover { color: var(--white); text-decoration: underline; }
+  .c-gh svg { width: 16px; height: 16px; flex: none; }
+  /* 1190–1279: GitHub только значком (имя ссылки в aria-label), зазоры плотнее — шапка остаётся в одну строку */
+  @media (max-width: 1279px) { .c-gh span { display: none; } .c-top { column-gap: 8px; } .c-keys { gap: 6px; } }
   .c-clock { font: 600 15px var(--sans); font-variant-numeric: tabular-nums; color: var(--ink);
     padding-left: 10px; border-left: 1px solid var(--line); }
 
@@ -229,9 +257,14 @@
   .col-head { display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 14px; min-height: 46px; border-bottom: 1px solid var(--line); }
   .col-head h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--white); white-space: nowrap; }
   .col-head .count { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .acts .col-head .count { flex-shrink: 0; } /* «шаг 3 / 33» не режется: место уступает подсказка */
   .col-head .count b { color: var(--white); font-weight: 650; }
   .col-head .hint { font-size: 14px; color: var(--muted); display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
   .col-head .hint kbd { padding: 2px 4px; }
+  .col-head .hint .sp { display: contents; }
+  /* A6: счётчик и тумблер 8′ влезают — уже 1280 прячем «· Space = J», уже 1120 при тумблере всю подсказку */
+  @media (max-width: 1279px) { .acts .col-head .hint .sp { display: none; } }
+  @media (max-width: 1119px) { .acts .col-head:has(.tgl) .hint { display: none; } }
   .col-head .spacer { flex: 1; }
   .ghost { border: 1px solid var(--line); background: transparent; border-radius: 7px; padding: 4px 9px; font-size: 14px;
     color: var(--muted); cursor: pointer; white-space: nowrap; }
@@ -415,6 +448,10 @@
         <path d="M66.5067 43.7327H62.6057V38.8697L66.5067 38.8233C70.4995 38.8233 71.9681 36.8781 71.9681 32.8488V11.8221H77.2459V32.8951C77.2 39.8886 73.3908 43.7327 66.5067 43.7327Z"/>
       </g>
     </g>
+    <!-- QR https://github.com/Fedoseew/jmix-demo-runbook, 41×41 модуль с полем 4: тёмные модули на белом -->
+    <symbol id="qr-repo" viewBox="0 0 41 41" shape-rendering="crispEdges"><path fill="#FFFFFF" d="M0 0h41v41H0z"/><path stroke="#17124B" d="M4 4.5h7m1 0h1m7 0h1m1 0h3m2 0h1m2 0h7M4 5.5h1m5 0h1m1 0h1m1 0h1m1 0h1m1 0h1m2 0h1m3 0h1m1 0h2m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m3 0h2m1 0h4m1 0h3m3 0h1m1 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m5 0h1m2 0h1m2 0h1m1 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m5 0h2m2 0h3m5 0h1m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m3 0h2m1 0h4m1 0h1m2 0h2m1 0h1m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h5m2 0h3m1 0h1m4 0h1M4 12.5h1m1 0h2m1 0h3m2 0h1m1 0h1m1 0h5m2 0h4m1 0h1m2 0h1m1 0h2M8 13.5h1m2 0h1m1 0h2m2 0h1m2 0h5m2 0h1m2 0h2m1 0h2m1 0h1M5 14.5h1m3 0h2m1 0h2m1 0h1m1 0h1m2 0h1m1 0h1m1 0h4m2 0h4m1 0h2M5 15.5h1m2 0h1m2 0h2m1 0h3m2 0h1m1 0h1m2 0h3m2 0h3m1 0h1M4 16.5h4m2 0h3m1 0h1m1 0h1m1 0h1m1 0h1m3 0h6m2 0h2m1 0h2M4 17.5h1m1 0h2m1 0h1m2 0h3m3 0h1m5 0h2m2 0h2m1 0h1m3 0h1M6 18.5h3m1 0h4m2 0h1m1 0h1m2 0h5m2 0h1m1 0h3M6 19.5h1m4 0h2m2 0h1m1 0h1m1 0h1m5 0h1m1 0h1m1 0h2m1 0h3M4 20.5h1m1 0h2m2 0h6m1 0h1m4 0h1m1 0h3m2 0h2m1 0h3M4 21.5h1m1 0h1m1 0h2m1 0h1m7 0h2m1 0h3m1 0h5m1 0h2m1 0h2M5 22.5h1m1 0h1m1 0h8m2 0h2m1 0h1m1 0h2m2 0h2m1 0h2m1 0h1M6 23.5h4m2 0h2m2 0h1m2 0h5m2 0h5m1 0h1m3 0h1M5 24.5h6m1 0h1m3 0h1m3 0h1m5 0h1m6 0h4M4 25.5h3m4 0h1m1 0h3m1 0h1m1 0h2m3 0h4m2 0h2m1 0h2m1 0h1M7 26.5h1m2 0h1m3 0h2m1 0h3m3 0h3m1 0h1m1 0h4m2 0h2M5 27.5h1m2 0h2m3 0h4m1 0h2m2 0h1m1 0h1m2 0h1m2 0h2m1 0h1M4 28.5h1m1 0h3m1 0h1m2 0h1m1 0h3m2 0h2m1 0h1m2 0h1m1 0h5m2 0h2M12 29.5h4m1 0h1m1 0h2m2 0h3m2 0h1m3 0h2m1 0h1M4 30.5h7m1 0h1m1 0h1m2 0h2m2 0h5m1 0h2m1 0h1m1 0h1M4 31.5h1m5 0h1m1 0h1m5 0h5m1 0h1m2 0h2m3 0h4M4 32.5h1m1 0h3m1 0h1m2 0h1m2 0h3m1 0h4m2 0h7m1 0h1M4 33.5h1m1 0h3m1 0h1m1 0h1m1 0h1m3 0h1m1 0h1m2 0h1m1 0h3m3 0h1m1 0h4M4 34.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h4m3 0h1m1 0h1m3 0h2m1 0h2M4 35.5h1m5 0h1m2 0h1m3 0h2m2 0h2m1 0h1m1 0h4m1 0h2m3 0h1M4 36.5h7m1 0h5m1 0h1m1 0h4m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1"/></symbol>
+    <!-- GitHub mark (Octicons mark-github, MIT) -->
+    <g id="i-github" fill="currentColor" transform="scale(1.5)"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></g>
     <!-- иконки видов действий -->
     <g id="i-shell" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l5 5-5 5M12.5 17.5H19"/></g>
     <g id="i-git" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6.5" cy="5.5" r="2.3"/><circle cx="6.5" cy="18.5" r="2.3"/><circle cx="17.5" cy="8" r="2.3"/><path d="M6.5 8v8M17.5 10.3c0 4.2-5.5 4-10 6.4"/></g>
@@ -438,7 +475,7 @@
         <h3>Везде</h3>
         <dl>
           <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>блок назад / вперёд</dd>
-          <dt><kbd>1</kbd><kbd>2</kbd></dt><dd>демо A / B</dd>
+          <dt><kbd>1</kbd><kbd>2</kbd></dt><dd>демо A / B; на заставке таймер встаёт — <kbd>T</kbd> продолжит</dd>
           <dt><kbd>T</kbd></dt><dd>таймер: старт / пауза</dd>
           <dt><kbd>R</kbd></dt><dd>сброс таймера блока; R или T за 3 с — отмена</dd>
           <dt><kbd>F</kbd></dt><dd>полный экран</dd>
