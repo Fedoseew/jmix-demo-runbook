@@ -393,9 +393,8 @@
   function paintDockTimer(pct) {
     const left = q('[data-dock-left]');
     if (!left) return; // панель закрыта или блок без таймера
-    const sec = Runbook.remaining(block().minutes, live());
-    left.textContent = Runbook.fmt(sec);
-    left.classList.toggle('late', sec < 0);
+    // Зеркало видит зал: без минуса и розового — перерасход показывает только консоль (spec §10.1).
+    left.textContent = Runbook.fmt(Math.max(0, Runbook.remaining(block().minutes, live())));
     q('.d-bar').style.setProperty('--p', `${pct}%`);
   }
 

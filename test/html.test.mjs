@@ -95,3 +95,25 @@ test('клавиша C в кнопке копирования панели пе�
   assert.ok(px, '.dock .copy .ck не задаёт font-size: сработает 14px из .copy .ck');
   assert.ok(Number(px[1]) >= 18, `.dock .copy .ck: ${px[1]}px`);
 });
+
+const cssRule = selector => html.match(new RegExp(`${selector.replace(/[.*]/g, '\\$&')}\\s*\\{([^}]*)\\}`))?.[1];
+
+test('панель зеркала не показывает перерасход: без минуса и розового (spec §10.1)', () => {
+  const from = html.indexOf('ПАНЕЛЬ ДЛЯ ЗЕРКАЛА');
+  assert.doesNotMatch(html.slice(from, html.indexOf('</style>')), /\.late\b/);
+  const paint = readText('app.js').match(/function paintDockTimer[\s\S]*?\n  \}/)?.[0];
+  assert.ok(paint, 'нет paintDockTimer');
+  assert.doesNotMatch(paint, /late/);
+  assert.match(paint, /Math\.max\(0,/);
+});
+
+test('текущий шаг панели — до 3 строк, «Далее» — до 2', () => {
+  assert.match(cssRule('.d-txt') ?? '', /-webkit-line-clamp:\s*2/);
+  assert.match(cssRule('.d-step .d-txt') ?? '', /-webkit-line-clamp:\s*3/);
+});
+
+test('сегмент «сейчас» на полосе сцены виден и при 0% (spec §10.1)', () => {
+  const rule = cssRule('.st-seg.cur');
+  assert.ok(rule, 'нет правила .st-seg.cur');
+  assert.match(rule, /background:\s*rgb\(253 180 43 \/ \.\d+\)/);
+});
