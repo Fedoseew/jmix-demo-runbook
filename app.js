@@ -1,311 +1,232 @@
-// app.js — логика runbook. Чистые функции на globalThis.Runbook, DOM — в init().
+// app.js — DOM runbook: сцена, таймер, клавиши, синхронизация окон. Логика — в core.js (globalThis.Runbook).
+// Состояние не мутируется: каждое изменение собирает новый объект. Обращения к window/localStorage/location —
+// только из функций, которые вызывает DOMContentLoaded (тест загружает файл с фальшивым document).
 (function () {
-  const STORAGE_KEY = 'jmix-runbook/v1';
+  'use strict';
 
-  function clampIndex(i, len) {
-    if (len <= 0) return 0;
-    return Math.min(Math.max(i, 0), len - 1);
-  }
+  const STATUS_MS = 3000;
+  const UNDO_MS = 3000;
+  const TICK_MS = 500;
+  const STAGE_FONT_START_CQW = 2.35;
+  const STAGE_FONT_STEP_CQW = 0.04;
+  const NO_CONTENT = 'content.js не загрузился — откройте index.html из папки runbook';
 
-  function defaultState() {
-    return {
-      demo: 'a', index: 0, notes: false,
-      timer: { running: false, startedAt: null, elapsedBefore: 0 },
-      elapsed: {},
-    };
-  }
-
-  function loadState(storage) {
-    const d = defaultState();
-    try {
-      const raw = storage.getItem(STORAGE_KEY);
-      if (!raw) return d;
-      const s = JSON.parse(raw);
-      const t = s.timer || {};
-      // Хранилище — внешние данные: строка вместо числа сломала бы арифметику таймера и факта.
-      const running = t.running === true && Number.isFinite(t.startedAt);
-      return {
-        demo: s.demo === 'b' ? 'b' : 'a',
-        index: Number.isInteger(s.index) ? s.index : d.index,
-        notes: Boolean(s.notes),
-        timer: {
-          running,
-          startedAt: running ? t.startedAt : null,
-          elapsedBefore: Number.isFinite(t.elapsedBefore) ? t.elapsedBefore : 0,
-        },
-        elapsed: Object.fromEntries(Object.entries(s.elapsed || {}).filter(([, v]) => Number.isFinite(v))),
-      };
-    } catch (_) {
-      return d;
-    }
-  }
-
-  function saveState(storage, state) {
-    try { storage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { /* storage недоступен — работаем без него */ }
-  }
-
-  function shouldHandleKey(ev) {
-    const tag = ev && ev.target && ev.target.tagName;
-    return !(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
-  }
-
-  function totals(blocks) {
-    const real = blocks.filter(b => !b.pre);
-    return {
-      core: real.filter(b => !b.optional).reduce((s, b) => s + b.minutes, 0),
-      all: real.reduce((s, b) => s + b.minutes, 0),
-    };
-  }
-
-  const ACTION_LABELS = { shell: 'терминал', git: 'git', url: 'ссылка', studio: 'Studio', say: 'сказать' };
-  function actionLabel(kind) { return ACTION_LABELS[kind] || kind; }
-
-  async function copyText(text, clipboard) {
-    if (!clipboard || typeof clipboard.writeText !== 'function') return false;
-    try { await clipboard.writeText(text); return true; } catch (_) { return false; }
-  }
-
-  // --- таймер (Task 4 расширяет) ---
-  function fmt(sec) {
-    const s = Math.abs(Math.round(sec));
-    const sign = sec < 0 && s > 0 ? '-' : '';
-    const m = Math.floor(s / 60), r = s % 60;
-    return `${sign}${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
-  }
-  function elapsedNow(timer, now) {
-    return timer.elapsedBefore + (timer.running && timer.startedAt != null ? (now - timer.startedAt) / 1000 : 0);
-  }
-  function remaining(plannedMin, elapsedSec) { return plannedMin * 60 - elapsedSec; }
-
-  // Факт по демо: сохранённое время блоков, для текущего блока — живое время таймера.
-  function factTotal(blocks, elapsed, currentId, liveSec) {
-    return blocks.reduce((s, b) => s + (b.id === currentId ? liveSec : (elapsed[b.id] || 0)), 0);
-  }
-
-  // Fullscreen API возвращает промис, который отклоняется (нет жеста, iframe, запрет) — глотаем.
-  async function toggleFullscreen(doc) {
-    try {
-      if (doc.fullscreenElement) await doc.exitFullscreen();
-      else await doc.documentElement.requestFullscreen();
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  globalThis.Runbook = { clampIndex, defaultState, loadState, saveState, shouldHandleKey, totals, fmt, elapsedNow, remaining, factTotal, toggleFullscreen, actionLabel, copyText };
-
-  if (typeof document === 'undefined') return;
-
-  // ---------------- DOM ----------------
-  const $ = id => document.getElementById(id);
-  const storage = (() => { try { return window.localStorage; } catch (_) { return { getItem: () => null, setItem() {} }; } })();
-  let state = loadState(storage);
+  // ---------------- состояние и хелперы ----------------
+  let storage = null;
+  let state = null;       // общее для окон: хранится в localStorage
+  let view = 'stage';     // своё у окна: из URL, в localStorage не пишется
+  let dockOpen = false;   // своё у окна (панель для зеркала, Task 4)
   let tick = null;
   let statusTimer = null;
   let undoReset = null;   // { id, sec, until } — второе R в течение UNDO_MS возвращает сброшенное время
   const lastIndex = {};   // ponytail: позиция в другом демо живёт до перезагрузки, формат State не трогаем
-  const STATUS_MS = 3000;
-  const UNDO_MS = 3000;
-  const COPY_LABEL = 'Копировать';
-  const NO_CONTENT = 'content.js не загрузился или содержит ошибку — запустите node --test test/';
 
-  function demo() { return DEMOS[state.demo]; }
-  function block() { return demo().blocks[state.index]; }
-  function persist() { saveState(storage, state); }
+  const $ = id => document.getElementById(id);
+  const two = n => String(n).padStart(2, '0');
+  const demoName = key => DEMOS[key].title.split('—').pop().trim();
+  const logo = cls => `<svg class="${cls}" viewBox="0 0 156 48" role="img" aria-label="Jmix"><use href="#logo"/></svg>`;
 
-  function el(tag, attrs = {}, children = []) {
-    const n = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs)) {
-      if (k === 'text') n.textContent = v;
-      else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
-      else n.setAttribute(k, v);
-    }
-    for (const c of children) n.append(c);
-    return n;
+  const blocks = () => DEMOS[state.demo].blocks;
+  const block = () => blocks()[state.index];
+  const steps = () => Runbook.classifyActions(block().actions);
+  const stepIndex = () => Runbook.stepOf(state, block().id, steps().length);
+  const live = () => Runbook.elapsedNow(state.timer, Date.now());
+  const progressPct = b => (b.minutes ? Math.min(100, live() / (b.minutes * 60) * 100) : 0);
+  const idleTimer = elapsedBefore => ({ running: false, startedAt: null, elapsedBefore });
+  const withElapsed = (id, sec) => ({ ...state.elapsed, [id]: sec });
+  const withoutElapsed = id => Object.fromEntries(Object.entries(state.elapsed).filter(([k]) => k !== id));
+
+  function safeStorage() {
+    try { return window.localStorage; } catch (_) { return { getItem: () => null, setItem() {} }; }
   }
 
-  function renderTabs() {
-    const tabs = $('demoTabs'); tabs.replaceChildren();
-    for (const key of ['a', 'b']) {
-      tabs.append(el('button', { type: 'button', 'data-key': `tab-${key}`, 'aria-pressed': String(state.demo === key), text: DEMOS[key].title, onclick: () => switchDemo(key) }));
-    }
+  // Хранилище — внешние данные: индекс блока может не подойти к демо, поэтому зажимаем.
+  function readState() {
+    const s = Runbook.loadState(storage);
+    return { ...s, index: Runbook.clampIndex(s.index, DEMOS[s.demo].blocks.length) };
   }
 
-  function renderList() {
-    const ul = $('blockList'); ul.replaceChildren();
-    demo().blocks.forEach((b, i) => {
-      const tags = [];
-      if (b.optional) tags.push(el('span', { class: 'tag opt', text: 'опц.' }));
-      if (b.exit) tags.push(el('span', { class: 'tag exit', text: 'точка выхода' }));
-      if (state.elapsed[b.id] > 0) tags.push(el('span', { class: 'tag done', text: fmt(state.elapsed[b.id]) }));
-      ul.append(el('li', {}, [el('button', {
-        type: 'button', class: 'block', 'data-key': `block-${b.id}`,
-        'aria-current': i === state.index ? 'step' : 'false', onclick: () => goTo(i),
-      }, [
-        el('span', { text: `${b.id} · ${b.title}` }),
-        el('span', { class: 'min', text: b.pre ? '—' : `${b.minutes} мин` }),
-        el('span', { class: 'tags' }, tags),
-      ])]));
-    });
-  }
-
-  function renderSlide() {
-    const b = block();
-    $('blockMeta').textContent = b.pre ? 'Подготовка' : `Блок ${b.id} · план ${b.minutes} мин${b.optional ? ' · опционально' : ''}`;
-    $('slideTitle').textContent = b.title;
-    $('slideBullets').replaceChildren(...b.slide.map(s => el('li', { text: s })));
-    const ex = $('exit'); ex.hidden = !b.exit; ex.textContent = b.exit || '';
-    renderPresenter(b); // Task 3
-  }
-
-  function renderTotals() {
-    const t = totals(demo().blocks);
-    const fact = factTotal(demo().blocks, state.elapsed, block().id, elapsedNow(state.timer, Date.now()));
-    $('totals').textContent = `план ${t.core} мин (с опц. ${t.all}) · факт ${fmt(fact)}`;
-  }
-
-  // render() пересобирает кнопки, поэтому фокус переносим на новый элемент с тем же data-key.
-  // Фокус на вкладке/блоке следует за текущим выбором, иначе Space на старой кнопке вернул бы назад.
-  function render() {
-    const key = document.activeElement?.dataset?.key;
-    renderTabs(); renderList(); renderSlide(); renderTotals(); renderTimer(); persist();
-    if (!key) return;
-    const target = key.startsWith('tab-') ? `tab-${state.demo}` : key.startsWith('block-') ? `block-${block().id}` : key;
-    [...document.querySelectorAll('[data-key]')].find(n => n.dataset.key === target)?.focus();
-  }
+  function commit() { Runbook.saveState(storage, state); }
 
   function announce(msg) {
     const s = $('status');
     s.textContent = msg;
+    s.classList.add('on');
     clearTimeout(statusTimer);
-    statusTimer = setTimeout(() => { s.textContent = ''; }, STATUS_MS);
+    statusTimer = setTimeout(() => s.classList.remove('on'), STATUS_MS);
   }
 
-  function goTo(i) {
-    const next = clampIndex(i, demo().blocks.length);
-    if (next === state.index) return;  // →/← на крайнем блоке не должны ставить таймер на паузу
-    stopTimerIntoElapsed();            // фиксируем время текущего блока
-    state.index = next;
-    state.timer = { running: false, startedAt: null, elapsedBefore: state.elapsed[block().id] || 0 };
-    render();
-  }
-  function switchDemo(key) {
-    if (state.demo === key) return;
-    stopTimerIntoElapsed();
-    lastIndex[state.demo] = state.index;
-    state.demo = key;
-    state.index = clampIndex(lastIndex[key] ?? state.index, demo().blocks.length);
-    state.timer = { running: false, startedAt: null, elapsedBefore: state.elapsed[block().id] || 0 };
-    render();
-  }
-
-  function renderPresenter(b) {
-    const p = $('presenter');
-    p.hidden = !state.notes;
-    if (p.hidden) return;
-    $('notes').replaceChildren(...b.notes.map(t => el('p', { text: t })));
-    $('actions').replaceChildren(...b.actions.map((a, i) => {
-      const body = a.kind === 'url'
-        ? el('a', { href: a.text, target: '_blank', rel: 'noopener', 'data-key': `link-${b.id}-${i}`, text: a.text })
-        : a.kind === 'say' ? el('span', { class: 'say', text: a.text })
-        : el('code', { text: a.text });
-      const copyable = a.kind === 'shell' || a.kind === 'git' || a.kind === 'url';
-      const btn = copyable ? el('button', {
-        type: 'button', 'data-key': `copy-${b.id}-${i}`, 'aria-label': `${COPY_LABEL}: ${a.text}`, text: COPY_LABEL,
-        onclick: async ev => {
-          ev.stopPropagation();
-          let ok = await copyText(a.text, navigator.clipboard);
-          if (!ok) {
-            const r = document.createRange(); r.selectNodeContents(body); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
-            // ponytail: execCommand устарел, но копирует там, где Clipboard API запрещён политикой страницы
-            try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
-          }
-          const msg = ok ? 'Скопировано' : 'Выделено';
-          btn.textContent = msg;
-          btn.classList.toggle('copied', ok);
-          announce(msg);
-          setTimeout(() => { btn.textContent = COPY_LABEL; btn.classList.remove('copied'); }, 1500);
-        },
-      }) : el('span');
-      return el('div', { class: 'action' }, [el('span', { class: 'kind', text: actionLabel(a.kind) }), body, btn]);
-    }));
+  // ---------------- сцена: одна разметка для зала (и для миниатюры консоли) ----------------
+  function stageHTML(main) {
+    const b = block(), all = blocks();
+    const talks = all.filter(x => !x.pre);
+    // Залу — только пройдено / сейчас / впереди: опциональность и точки выхода видит лишь докладчик.
+    const strip = talks.map(x => {
+      const i = all.indexOf(x);
+      const cls = i < state.index ? 'done' : i === state.index ? 'cur' : '';
+      const p = cls === 'cur' ? `;--p:${progressPct(x)}%` : '';
+      return `<span class="st-seg ${cls}" style="--m:${x.minutes}${p}"></span>`;
+    }).join('');
+    const inner = b.pre
+      ? `<div class="h-hero">${logo('h-logo')}<p class="h-kicker">Живое демо</p><h1 class="h-title">${Runbook.typo(demoName(state.demo))}</h1>
+           <div class="st-rule"></div><p class="h-when">Скоро начинаем</p></div>
+         <div class="h-agenda"><p class="h-cap">Программа</p>
+           <ol class="h-list">${talks.map((x, i) => `<li><span class="n">${two(i + 1)}</span><span>${Runbook.typo(x.title)}</span></li>`).join('')}</ol></div>`
+      : `<div class="st-top"><span class="st-count"><b>${two(talks.indexOf(b) + 1)}</b> / ${two(talks.length)}</span><i></i><span>${Runbook.esc(demoName(state.demo))}</span>${logo('st-logo')}</div>
+         <h1 class="st-title">${Runbook.typo(b.title)}</h1>
+         <div class="st-rule"></div><ul class="st-list">${b.slide.map(t => `<li>${Runbook.typo(t)}</li>`).join('')}</ul>`;
+    return `<section class="stage${b.pre ? ' hold' : ''}${state.light ? ' light' : ''}" aria-label="Слайд ${Runbook.esc(b.id)}">
+      <svg class="st-wm" viewBox="0 0 48 48" aria-hidden="true"><use href="#logo-mark"/></svg>
+      <div class="st-inner">${inner}</div>
+      <div class="st-foot"><div class="st-strip" aria-hidden="true">${strip}</div></div>
+      ${main ? '<div class="st-hint"><kbd>P</kbd> консоль · <kbd>N</kbd> панель · <kbd>L</kbd> светлая сцена</div>' : ''}
+    </section>`;
   }
 
-  function renderTimer() {
-    const b = block();
-    const t = $('timer');
-    t.classList.toggle('hidden', b.minutes === 0);
-    if (b.minutes === 0) { stopTick(); return; }
-    const rem = remaining(b.minutes, elapsedNow(state.timer, Date.now()));
-    t.textContent = fmt(rem);
-    t.classList.toggle('over', Math.round(rem) < 0); // красный — только когда на табло уже «-00:01»
-    t.classList.toggle('running', state.timer.running);
-    if (state.timer.running && !tick) tick = setInterval(onTick, 500);
-    if (!state.timer.running) stopTick();
+  // Keynote-подобное ужатие: если тезисы не влезают, уменьшаем шрифт, но не ниже STAGE_FONT_MIN_CQW.
+  function fitStage(stage) {
+    const list = stage.querySelector('.st-list');
+    if (!list) return;
+    let fs = STAGE_FONT_START_CQW;
+    const apply = () => list.style.setProperty('--fs', `${fs}cqw`);
+    const overflows = () => list.scrollHeight > list.clientHeight + 1 || list.scrollWidth > list.clientWidth + 1;
+    apply();
+    while (overflows() && fs > Runbook.STAGE_FONT_MIN_CQW) {
+      fs = Math.max(Runbook.STAGE_FONT_MIN_CQW, Math.round((fs - STAGE_FONT_STEP_CQW) * 100) / 100);
+      apply();
+    }
   }
-  function onTick() { renderTimer(); renderTotals(); }
-  function stopTick() { if (tick) { clearInterval(tick); tick = null; } }
 
+  function fitAll() {
+    $('app').querySelectorAll('.stage').forEach(fitStage);
+  }
+
+  // ---------------- консоль и панель: заглушки Task 3–4 ----------------
+  function consoleHTML() { return ''; }
+  function dockHTML() { return ''; }
+  function paintSteps() { /* Task 3–4: активный шаг и короткая версия без перерисовки */ }
+
+  // ---------------- рендер ----------------
+  function render() {
+    document.body.className = 'view-' + view + (dockOpen ? ' dock-open' : '');
+    $('app').innerHTML = view === 'console' ? consoleHTML() : stageHTML(true) + dockHTML();
+    fitAll();
+    paintSteps(false);
+    paintTimer();
+    ensureTick();
+    document.title = `${block().id} · ${view === 'console' ? 'Консоль' : 'Сцена'} — Jmix Runbook`;
+  }
+
+  // Без перерисовки: ширина текущего сегмента полосы сцены; числа консоли и панели добавляют Task 3–4.
+  function paintTimer() {
+    const pct = progressPct(block());
+    $('app').querySelectorAll('.st-seg.cur').forEach(seg => seg.style.setProperty('--p', `${pct}%`));
+  }
+
+  function ensureTick() {
+    if (state.timer.running && !tick) tick = setInterval(paintTimer, TICK_MS);
+    else if (!state.timer.running && tick) { clearInterval(tick); tick = null; }
+  }
+
+  // ---------------- таймер ----------------
+  // Время текущего блока уходит в elapsed, таймер встаёт на паузу.
   function stopTimerIntoElapsed() {
-    const b = block();
-    const sec = Math.round(elapsedNow(state.timer, Date.now()));
-    if (sec > 0) state.elapsed[b.id] = sec;
-    state.timer = { running: false, startedAt: null, elapsedBefore: sec };
-    stopTick();
+    const sec = Math.round(live());
+    state = { ...state, elapsed: sec > 0 ? withElapsed(block().id, sec) : state.elapsed, timer: idleTimer(sec) };
   }
+
+  // Таймер и факт меняются без render(): в консоли он схлопнул бы раскрытые заметки.
+  function commitTimer() { commit(); paintTimer(); ensureTick(); }
 
   function toggleTimer() {
     if (block().minutes === 0) return;
     undoReset = null; // после T отмена сброса затёрла бы новое время блока
-    if (state.timer.running) {
-      stopTimerIntoElapsed();
-    } else {
-      state.timer = { running: true, startedAt: Date.now(), elapsedBefore: state.elapsed[block().id] || 0 };
-    }
-    render();
+    if (state.timer.running) stopTimerIntoElapsed();
+    else state = { ...state, timer: { running: true, startedAt: Date.now(), elapsedBefore: state.elapsed[block().id] || 0 } };
+    commitTimer();
   }
 
   // R без модификатора легко нажать случайно — повторное R в течение UNDO_MS возвращает время блока.
   function resetTimer() {
-    const id = block().id;
-    stopTick();
-    if (undoReset && undoReset.id === id && Date.now() < undoReset.until) {
+    const b = block();
+    if (b.minutes === 0) return;
+    const id = b.id;
+    const now = Date.now();
+    if (undoReset && undoReset.id === id && now < undoReset.until) {
       const { sec } = undoReset;
       undoReset = null;
-      if (sec > 0) state.elapsed[id] = sec;
-      state.timer = { running: false, startedAt: null, elapsedBefore: sec };
+      state = { ...state, elapsed: sec > 0 ? withElapsed(id, sec) : state.elapsed, timer: idleTimer(sec) };
       announce('Сброс отменён');
     } else {
-      undoReset = { id, sec: Math.round(elapsedNow(state.timer, Date.now())), until: Date.now() + UNDO_MS };
-      delete state.elapsed[id];
-      state.timer = { running: false, startedAt: null, elapsedBefore: 0 };
+      undoReset = { id, sec: Math.round(live()), until: now + UNDO_MS };
+      state = { ...state, elapsed: withoutElapsed(id), timer: idleTimer(0) };
       announce('Таймер блока сброшен — R ещё раз в течение 3 с вернёт время');
     }
+    commitTimer();
+  }
+
+  // ---------------- навигация ----------------
+  function moveTo(patch) {
+    stopTimerIntoElapsed();
+    state = { ...state, ...patch };
+    state = { ...state, timer: idleTimer(state.elapsed[block().id] || 0) };
+    commit();
     render();
   }
 
-  function onKey(ev) {
-    if (!shouldHandleKey(ev) || ev.metaKey || ev.ctrlKey || ev.altKey) return;
-    const k = ev.key;
-    if (k === 'ArrowRight') goTo(state.index + 1);
-    else if (k === 'ArrowLeft') goTo(state.index - 1);
-    else if (k === '1') switchDemo('a');
-    else if (k === '2') switchDemo('b');
-    else if (k === 'n' || k === 'N' || k === 'т' || k === 'Т') { state.notes = !state.notes; render(); }
-    else if (k === 't' || k === 'T' || k === 'е' || k === 'Е') toggleTimer();
-    else if (k === 'r' || k === 'R' || k === 'к' || k === 'К') resetTimer();
-    else if (k === 'f' || k === 'F' || k === 'а' || k === 'А') toggleFullscreen(document);
-    else return;
-    ev.preventDefault();
+  function go(i) {
+    const next = Runbook.clampIndex(i, blocks().length);
+    if (next === state.index) return; // →/← на крайнем блоке не должны ставить таймер на паузу
+    moveTo({ index: next });
   }
 
+  function setDemo(key) {
+    if (state.demo === key) return;
+    lastIndex[state.demo] = state.index;
+    moveTo({ demo: key, index: Runbook.clampIndex(lastIndex[key] ?? state.index, DEMOS[key].blocks.length) });
+  }
+
+  // ---------------- клавиши и синхронизация окон ----------------
+  // e.code — чтобы клавиши работали и в русской раскладке
+  function onKey(e) {
+    if (!Runbook.shouldHandleKey(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.code === 'Space' && e.target.closest?.('button, summary, input, a')) return;
+    switch (e.code) {
+      case 'ArrowRight': go(state.index + 1); break;
+      case 'ArrowLeft': go(state.index - 1); break;
+      case 'Digit1': setDemo('a'); break;
+      case 'Digit2': setDemo('b'); break;
+      case 'KeyT': toggleTimer(); break;
+      case 'KeyR': resetTimer(); break;
+      case 'KeyF': Runbook.toggleFullscreen(document); break;
+      case 'KeyL': state = { ...state, light: !state.light }; commit(); render(); break;
+      default: return;
+    }
+    e.preventDefault();
+  }
+
+  function onStorage(e) {
+    if (e.key !== Runbook.STORAGE_KEY) return;
+    const next = readState();
+    const ch = Runbook.syncChanges(state, next);
+    state = next;
+    if (ch.full) { render(); return; }
+    if (ch.steps) paintSteps(true);
+    if (ch.timer) { paintTimer(); ensureTick(); }
+  }
+
+  // ---------------- инициализация ----------------
   function init() {
     // content.js правится руками: без этой проверки синтаксическая ошибка в нём даёт пустой тёмный экран.
     if (!globalThis.DEMOS?.a || !globalThis.DEMOS?.b) { document.body.textContent = NO_CONTENT; return; }
-    state.index = clampIndex(state.index, demo().blocks.length);
+    storage = safeStorage();
+    state = readState();
+    view = Runbook.viewOf(location.search);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('resize', fitAll);
     render();
   }
+
   document.addEventListener('DOMContentLoaded', init);
 })();

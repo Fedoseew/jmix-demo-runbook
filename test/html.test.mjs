@@ -21,10 +21,11 @@ for (const file of ['index.html', 'app.js', 'content.js']) {
   });
 }
 
-test('подключает content.js и app.js относительными путями, в этом порядке', () => {
+test('подключает content.js, core.js и app.js относительными путями, в этом порядке', () => {
   const c = html.indexOf('src="./content.js"');
+  const k = html.indexOf('src="./core.js"');
   const a = html.indexOf('src="./app.js"');
-  assert.ok(c > -1 && a > -1 && c < a);
+  assert.ok(c > -1 && k > c && a > k);
 });
 
 test('базовые атрибуты документа', () => {
@@ -34,18 +35,14 @@ test('базовые атрибуты документа', () => {
   assert.ok(/<title>[^<]+<\/title>/.test(html));
 });
 
-test('есть контейнеры, на которые ссылается app.js', () => {
-  for (const id of ['demoTabs', 'blockList', 'slideTitle', 'slideBullets', 'presenter', 'notes', 'actions', 'timer', 'totals', 'blockMeta', 'help', 'status']) {
-    assert.ok(html.includes(`id="${id}"`), `нет id="${id}"`);
+test('есть корень, статус и SVG-спрайт с логотипом и иконками шагов', () => {
+  for (const id of ['app', 'status']) assert.ok(html.includes(`id="${id}"`), `нет id="${id}"`);
+  for (const id of ['logo', 'logo-mark', 'i-shell', 'i-git', 'i-url', 'i-studio', 'i-say', 'i-prompt', 'i-copy', 'i-check', 'i-chev', 'i-exit']) {
+    assert.ok(html.includes(`id="${id}"`), `нет символа ${id}`);
   }
 });
 
 const cssVar = name => html.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].trim();
-
-test('шрифты для проектора: слайд ≥ 28px, заметки ≥ 18px', () => {
-  assert.ok(parseFloat(cssVar('slide-size')) >= 28, cssVar('slide-size'));
-  assert.ok(parseFloat(cssVar('notes-size')) >= 18, cssVar('notes-size'));
-});
 
 // WCAG 2.x relative luminance / contrast ratio.
 const luminance = hex => {
@@ -58,8 +55,8 @@ const contrast = (a, b) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-test('контраст цветов текста ≥ 4.5:1 на всех фонах', () => {
-  for (const fg of ['text', 'muted', 'accent', 'ok', 'warn', 'bad']) {
+test('контраст цветов текста ≥ 4.5:1 на всех фонах консоли', () => {
+  for (const fg of ['ink', 'muted', 'white', 'yellow', 'pink-text', 'green', 'cyan']) {
     for (const bg of ['bg', 'panel', 'panel-2']) {
       const ratio = contrast(cssVar(fg), cssVar(bg));
       assert.ok(ratio >= 4.5, `--${fg} на --${bg}: ${ratio.toFixed(2)}`);
