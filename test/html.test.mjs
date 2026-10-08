@@ -87,3 +87,11 @@ test('текст панели зеркала не мельче 18px (spec §10.5
   assert.ok(sizes.length >= 6, `нашлось только ${sizes.length} размеров`);
   assert.deepEqual(sizes.filter(px => px < 18), []);
 });
+
+test('клавиша C в кнопке копирования панели перебивает 14px консоли (spec §10.5)', () => {
+  const rule = html.match(/\.dock \.copy \.ck\s*\{([^}]*)\}/);
+  assert.ok(rule, 'нет правила .dock .copy .ck');
+  const px = rule[1].match(/font-size:\s*(\d+(?:\.\d+)?)px/);
+  assert.ok(px, '.dock .copy .ck не задаёт font-size: сработает 14px из .copy .ck');
+  assert.ok(Number(px[1]) >= 18, `.dock .copy .ck: ${px[1]}px`);
+});
