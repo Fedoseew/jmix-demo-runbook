@@ -108,6 +108,7 @@ jmix-demo-runbook/
 | | [Reports](https://docs.jmix.io/jmix/reports/index.html) | Reports add-on: template-based reports; AI-generated JPQL is in 3.1 preview (A5) |
 | | [Reverse engineering](https://docs.jmix.io/jmix/studio/reverse-engineering.html) · [Data stores](https://docs.jmix.io/jmix/studio/data-stores.html) | a model from an existing database, and data stores (B2) |
 | | [Security](https://docs.jmix.io/jmix/security/index.html) | roles and row-level policies (A4, B3) |
+| Articles | [«Агент написал Джеймикс, тоже плохой»](https://habr.com/ru/companies/haulmont/articles/1069308/) (Russian) | Haulmont benchmark on Habr: one agent, one task, Jmix vs Spring: acceptance, permissions, code size (A0, A7) |
 | Community | [forum.jmix.io](https://forum.jmix.io/) | forum: questions and answers |
 | | [Jmix Studio](https://plugins.jetbrains.com/plugin/14340-jmix) | the IntelliJ IDEA plugin |
 

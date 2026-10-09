@@ -59,7 +59,7 @@ The light bar is the optional block; diamonds are exit points.
 | # | Block | Min | What it shows |
 |---|---|---|---|
 | A-pre | Pre-flight | — | Setup checklist; the audience sees a holding slide with the agenda and a QR code for the repository |
-| A0 | The AI × Jmix map | 5 | The two axes, why Jmix suits an agent, and the honest part: agents invent APIs, caught by inspections, tests and review |
+| A0 | The AI × Jmix map | 5 | The two axes, why Jmix suits an agent, the Haulmont «Jmix vs Spring» benchmark, and the honest part: agents invent APIs, caught by inspections, tests and review |
 | A1 | The agent's environment: jmix-agent-toolkit | 10 | Installing the toolkit (Studio 3.0+ or `install.sh`) and what it adds to the project: skills, guidelines, MCP, Playwright; the `jmix` hub skill and the gates |
 | A2 | The agent builds a feature | 15 | "Contract: entity, list, detail, role, test" on jmix-crm: 3 minutes live, then the finished result from the `demo/agent-task` branch; where the framework catches mistakes |
 | A3 | Jmix CLI and Jmix AI | 3 | `jmix --no-update new … --non-interactive`, the new project already has `.skills`; one Jmix AI question. **Exit point 1:** if behind, go straight to A4 |
@@ -98,10 +98,10 @@ gantt
 | B-pre | Pre-flight | — | Setup checklist; the audience sees a holding slide with the agenda and a QR code for the repository |
 | B0 | What Jmix is | 8 | Spring Boot + Vaadin Flow + JPA, Studio and add-ons; where Jmix fits and where it doesn't; licensing |
 | B1 | A project two ways: Studio and CLI | 7 | Studio New Project and the `jmix --no-update` wizard share templates; `--non-interactive` for scripts and agents; project layout, run, log in |
-| B2 | An app from an existing database | 15 | PostgreSQL with the CRM schema → Generate Model from Database → entities with relations → list and detail views → run with real data; Liquibase leaves existing tables alone |
+| B2 | An app from an existing database | 15 | PostgreSQL with the CRM schema → Generate Model from Database → entities with relations → list and detail views → run with real data: sorting, the filter and fields picked by attribute type with no UI code; Liquibase leaves existing tables alone |
 | B3 | Hand edits in Studio | 10 | A `rating` attribute added live, Studio writes a one-column changelog; the ready role "Manager: Clients read-only" from `b/04-role`, assigned, then log in as the manager |
 | B4 | Bridge to AI | 10, optional | The toolkit in the same project, one prompt "list view for Invoice" → result from the `b/05-agent` branch; a CRM AI teaser. **Exit point:** if behind, only 3 minutes of CRM AI |
-| B5 | Summary | 5 | Docs, Studio trial, online demo, forum, a step for tomorrow, where the demo materials are |
+| B5 | Summary | 5 | A recap strip from the existing database to the manager role; docs, Studio trial, online demo, forum, a step for tomorrow, where the demo materials are |
 
 ## What to prepare
 

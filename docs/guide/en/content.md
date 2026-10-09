@@ -46,7 +46,7 @@ The runbook expects exactly two demos, keyed `a` and `b`: the `1` / `2` keys and
 | `optional` | a hatched segment in the agenda, the «опц.» tag in the next card | totals count the core without optional blocks |
 | `pre` | holding slide on the stage, checklist in the console | first block only; `slide` holds the checklist items |
 | `exit` | agenda marker, «выход» (exit) in the next card, a line under the stage thumbnail | starts with «Точка выхода…:»; the console shows the text after the colon |
-| `flow` | a process strip on the stage under the yellow rule, above the bullets: label chips joined by arrows | 3–5 labels of at most 24 characters each; a strip that breaks the rules is not drawn. Used on A4, A5, A6 and B2 today |
+| `flow` | a process strip on the stage under the yellow rule, above the bullets: label chips joined by arrows | 3–5 labels of at most 24 characters each; a strip that breaks the rules is not drawn. Used on A4, A5, A6, B2 and B5 today |
 | `slide` | bullets on the stage | 3–6 bullets, each at most 90 characters |
 | `notes` | the console notes column: a bold lead plus the collapsed rest | every paragraph needs a lead (see below) |
 | `actions` | the console steps column, the next card, the mirror dock | `kind` from the table below, non-empty `text` |
