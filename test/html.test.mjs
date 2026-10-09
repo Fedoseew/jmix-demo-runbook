@@ -98,15 +98,6 @@ test('клавиша C в кнопке копирования панели пе�
 
 const cssRule = selector => html.match(new RegExp(`${selector.replace(/[.*]/g, '\\$&')}\\s*\\{([^}]*)\\}`))?.[1];
 
-test('панель зеркала не показывает перерасход: без минуса и розового (spec §10.1)', () => {
-  const from = html.indexOf('ПАНЕЛЬ ДЛЯ ЗЕРКАЛА');
-  assert.doesNotMatch(html.slice(from, html.indexOf('</style>')), /\.late\b/);
-  const paint = readText('app.js').match(/function paintDockTimer[\s\S]*?\n  \}/)?.[0];
-  assert.ok(paint, 'нет paintDockTimer');
-  assert.doesNotMatch(paint, /late/);
-  assert.match(paint, /Math\.max\(0,/);
-});
-
 test('панель: текущий шаг Studio и реплика не обрезаются, копируемый — до 3 строк, «Далее» — строка', () => {
   assert.doesNotMatch(cssRule('.d-txt') ?? '', /line-clamp/);
   assert.ok(!/\.d-cur[^{]*\{[^}]*line-clamp/.test(html), '.d-cur обрезается');
@@ -142,21 +133,6 @@ test('подсказка клавиш сцены — в строке шапки,
   assert.match(rule, /top:\s*3\.3cqw/, 'подсказка — в строке счётчика и логотипа');
 });
 
-test('перерасход в консоли красит и полосу блока', () => {
-  assert.match(cssRule('.t-bar.late i') ?? '', /background:\s*var\(--pink\)/);
-});
-
-test('светлая сцена: «сейчас» на полосе ярче «пройдено» (.42)', () => {
-  const alpha = Number(cssRule('.stage.light .st-seg.cur')?.match(/rgb\(253 180 43 \/ (\.\d+)\)/)?.[1]);
-  assert.ok(alpha > 0.42, `альфа ${alpha}`);
-});
-
-test('сегмент «сейчас» на полосе сцены виден и при 0% (spec §10.1)', () => {
-  const rule = cssRule('.st-seg.cur');
-  assert.ok(rule, 'нет правила .st-seg.cur');
-  assert.match(rule, /background:\s*rgb\(253 180 43 \/ \.\d+\)/);
-});
-
 // U10: в зеркале консоли нет, а легенда панели и подсказка сцены показывают не все клавиши.
 test('справка «?» перечисляет каждую клавишу, которую читает app.js (U10)', () => {
   const app = readText('app.js');
@@ -173,6 +149,12 @@ test('справка «?» перечисляет каждую клавишу, �
 
 const appSrc = readText('app.js');
 const fnSrc = name => appSrc.match(new RegExp(`function ${name}\\([\\s\\S]*?\\n  \\}`))?.[0] ?? '';
+
+test('сегмент «сейчас» на полосе сцены — сплошной жёлтый, на светлой сцене с контуром (spec §12)', () => {
+  assert.match(cssRule('.st-seg.cur') ?? '', /background:\s*var\(--yellow\)/);
+  assert.match(cssRule('.stage.light .st-seg.cur') ?? '', /box-shadow:\s*inset 0 0 0 1px/);
+  assert.doesNotMatch(fnSrc('stageHTML'), /--p\b/, 'полоса сцены не заливается по времени');
+});
 
 test('meta description и Open Graph: превью ссылки, без внешних запросов', () => {
   const meta = (attr, name) => html.match(new RegExp(`<meta ${attr}="${name}" content="([^"]+)">`))?.[1];
@@ -212,10 +194,25 @@ test('полоса процесса — под чертой заголовка; 
   for (const bg of ['#FFFFFF', '#ECEDF6']) assert.ok(contrast(arrow, bg) >= 3, `${arrow} на ${bg}: ${contrast(arrow, bg).toFixed(2)}`);
 });
 
-test('шапка консоли в одну строку от 1024: «1 2 демо» до 1280, часы до 1190, «L свет» до 1100 уступают место', () => {
+test('шапка консоли в одну строку от 1024: «1 2 демо» до 1280 уступает место, часы и «L свет» видны всегда', () => {
   assert.match(html, /@media \(max-width: 1279px\) \{ \.c-keys \.k-demo \{ display: none; \} \}/);
-  assert.match(html, /@media \(max-width: 1189px\) \{ \.c-clock \{ display: none; \} \}/);
-  assert.match(html, /@media \(max-width: 1099px\) \{ \.c-keys \.k-light \{ display: none; \} \}/);
+  assert.doesNotMatch(html, /\.c-clock \{ display: none; \}/, 'часы — единственное время в консоли');
   assert.match(fnSrc('consoleHTML'), /<span class="k-demo"><kbd>1<\/kbd><kbd>2<\/kbd> демо<\/span>/);
-  assert.match(fnSrc('consoleHTML'), /<span class="k-light"><kbd>L<\/kbd> свет<\/span>/);
+  assert.match(fnSrc('consoleHTML'), /<span><kbd>L<\/kbd> свет<\/span>/);
+});
+
+test('чек-лист pre-flight: число «0/11» — свой элемент шапки и не режется, место уступает хвост «отмечено · N заметок»', () => {
+  assert.match(fnSrc('notesHTML'), /<b class="pf-n" data-checked>\$\{checkedText\(b\)\}<\/b><span class="count">отмечено · /);
+  assert.match(cssRule('.col-head .pf-n') ?? '', /flex:\s*none/);
+});
+
+test('«Далее»: не влезшие шаги во втором столбце — без прокрутки (overflow: clip) и вне Tab (inert)', () => {
+  assert.match(cssRule('.nx-steps') ?? '', /overflow:\s*clip/);
+  assert.doesNotMatch(cssRule('.nx-steps') ?? '', /overflow:\s*hidden/);
+  assert.match(fnSrc('fitNext'), /\.inert = /);
+  assert.match(fnSrc('fitAll'), /fitNext\(\)/);
+});
+
+test('часы консоли перерисовываются на границе минуты', () => {
+  assert.match(fnSrc('ensureClock'), /MINUTE_MS - Date\.now\(\) % MINUTE_MS/);
 });

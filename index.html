@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jmix Demo Runbook</title>
-<meta name="description" content="Офлайн-runbook докладчика для двух живых демо Jmix: «AI × Jmix» и «Jmix с нуля». Слайды для зала, консоль с заметками, шагами и таймером, панель для зеркала — один index.html без сборки и сети.">
+<meta name="description" content="Офлайн-runbook докладчика для двух живых демо Jmix: «AI × Jmix» и «Jmix с нуля». Слайды для зала, консоль с повесткой, заметками и шагами, панель для зеркала — один index.html без сборки и сети.">
 <meta property="og:title" content="Jmix Demo Runbook">
-<meta property="og:description" content="Офлайн-runbook докладчика для двух живых демо Jmix: «AI × Jmix» и «Jmix с нуля». Слайды для зала, консоль с заметками, шагами и таймером, панель для зеркала — один index.html без сборки и сети.">
+<meta property="og:description" content="Офлайн-runbook докладчика для двух живых демо Jmix: «AI × Jmix» и «Jmix с нуля». Слайды для зала, консоль с повесткой, заметками и шагами, панель для зеркала — один index.html без сборки и сети.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://fedoseew.github.io/jmix-demo-runbook/">
 <meta property="og:image" content="https://fedoseew.github.io/jmix-demo-runbook/docs/images/stage.jpg">
@@ -98,11 +98,10 @@
 
   .st-foot { position: absolute; left: 4.6cqw; right: 4.6cqw; bottom: 2.3cqw; }
   .st-strip { display: flex; gap: .35cqw; height: .7cqw; }
-  .st-seg { position: relative; flex: var(--m) 1 0; min-width: 0; border-radius: 1cqw; overflow: hidden; background: var(--s-track); }
+  .st-seg { flex: var(--m) 1 0; min-width: 0; border-radius: 1cqw; background: var(--s-track); }
   .st-seg.done { background: var(--s-done); }
-  .st-seg.cur { background: rgb(253 180 43 / .30); } /* «сейчас» видно и при 0%: таймер блока ещё не шёл */
-  .stage.light .st-seg.cur { background: rgb(253 180 43 / .6); box-shadow: inset 0 0 0 1px rgb(180 115 0 / .6); } /* на белом .3 тусклее «пройдено» */
-  .st-seg.cur::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--p, 0%); background: var(--yellow); }
+  .st-seg.cur { background: var(--yellow); }
+  .stage.light .st-seg.cur { box-shadow: inset 0 0 0 1px rgb(180 115 0 / .6); } /* жёлтый на белом — 1.6:1: контур держит границу */
   /* в пустой строке шапки между названием демо и логотипом: никогда не ложится на пункты слайда */
   .st-hint { position: absolute; top: 3.3cqw; right: 14cqw; font-size: 1.05cqw; color: var(--ink);
     background: rgb(10 8 31 / .86); border: 1px solid var(--line); border-radius: 2cqw; padding: .5cqw 1cqw;
@@ -154,10 +153,9 @@
   .c-gh svg { width: 16px; height: 16px; flex: none; }
   /* 1190–1279: GitHub только значком (имя ссылки в aria-label), зазоры плотнее — шапка остаётся в одну строку */
   @media (max-width: 1279px) { .c-gh span { display: none; } .c-top { column-gap: 8px; } .c-keys { gap: 6px; } }
-  /* шапка в одну строку от 1024: ниже 1280 нет подсказки «1 2 демо» (эти клавиши уже на вкладках демо), ниже 1190 — часов, ниже 1100 — «L свет» (все клавиши — в справке «?») */
+  /* шапка в одну строку от 1024: ниже 1280 нет подсказки «1 2 демо» (эти клавиши уже на вкладках демо; все клавиши — в справке «?»).
+     Часы видны всегда: таймера нет, это единственное время на экране докладчика */
   @media (max-width: 1279px) { .c-keys .k-demo { display: none; } }
-  @media (max-width: 1189px) { .c-clock { display: none; } }
-  @media (max-width: 1099px) { .c-keys .k-light { display: none; } }
   .c-clock { font: 600 15px var(--sans); font-variant-numeric: tabular-nums; color: var(--ink);
     padding-left: 10px; border-left: 1px solid var(--line); }
 
@@ -179,7 +177,6 @@
   .ag-seg.exit::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 4px; background: var(--pink); }
   .ag-seg.done { background-color: transparent; }
   .ag-seg.cur { border-color: var(--yellow); background: rgb(253 180 43 / .1); }
-  .ag-seg.cur .now { position: absolute; left: 0; bottom: 0; height: 3px; width: var(--p); background: var(--yellow); }
   .ag-l1 { display: flex; align-items: center; gap: 6px; font-size: 14px; white-space: nowrap; }
   .ag-l1 b { font-family: var(--mono); font-weight: 700; color: var(--white); }
   .ag-l1 .m { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -191,8 +188,6 @@
     .ag-l2.title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; }
   }
   .ag-seg.cur .ag-l2 { color: var(--ink); }
-  .ag-l2 .over { color: var(--pink-text); } .ag-l2 .under { color: var(--green); }
-  @container (width < 100px) { .ag-l2 .f-lbl { display: none; } }
   @media (max-height: 799px) { @container (width < 100px) { .ag-l2.title { visibility: hidden; } } }
   @container (width < 40px) { .ag-l2.title { visibility: hidden; } }
   @container (width < 60px) { .ag-l1 .m { display: none; } }
@@ -201,52 +196,28 @@
   .c-main { display: grid; grid-template-columns: 300px minmax(0, .85fr) minmax(0, 1.3fr); gap: 10px; min-height: 0; }
   .c-left { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 
-  .timer { padding: 12px 14px 13px; }
   .t-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .t-live { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--green); font-weight: 600; white-space: nowrap; }
   .t-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgb(65 184 131 / .2); }
-  .t-big { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
-  .t-big strong { font-size: 54px; line-height: 1.05; font-weight: 650; letter-spacing: -.02em; color: var(--white); font-variant-numeric: tabular-nums; }
-  .t-big strong.late { color: var(--pink-text); }
-  .t-big strong.paused { color: var(--muted); } /* пауза — приглушённые цифры: забытый T заметен издалека */
-  .t-big span { font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .t-bar { height: 6px; border-radius: 6px; background: var(--panel-2); overflow: hidden; margin: 8px 0 10px; }
-  .t-bar i { display: block; height: 100%; width: var(--p); background: var(--yellow); border-radius: 6px; }
-  .t-stats { display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; margin: 0; }
-  .t-stats dt { font-size: 14px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-  .t-stats dd { margin: 2px 0 0; font-size: 15px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .t-stats dd.late { color: var(--pink-text); }
-  .t-idle { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.4; }
-  .t-bar.ok i { background: var(--green); }
-  .t-bar.late i { background: var(--pink); }
   .t-live.wait { color: var(--muted); } .t-live.wait::before { background: var(--muted); box-shadow: none; }
-  .t-exit { margin: 11px 0 0; display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1.3; padding: 7px 8px 7px 9px;
-    border-radius: 8px; background: rgb(219 221 225 / .06); color: var(--muted); }
-  .t-exit.late { background: rgb(252 18 100 / .12); color: var(--pink-text); box-shadow: inset 0 0 0 1px rgb(252 18 100 / .4); }
-  .t-exit svg { width: 14px; height: 14px; flex: none; }
-  .t-exit span { flex: 1; min-width: 0; }
-  .t-exit b { font-weight: 700; font-variant-numeric: tabular-nums; }
 
   .now-shot { padding: 10px 12px 12px; }
   .now-shot .t-row { margin-bottom: 8px; }
   .now-shot .stage { border-radius: 8px; box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgb(0 0 0 / .35); }
   .now-shot .st-hint { display: none; }
-  .ns-title { display: none; }
-  /* невысокий экран ноутбука: миниатюра ужимается в полосу, место уходит карточке «Далее» */
-  @media (max-height: 799px) {
-    .now-shot { display: grid; grid-template-columns: 112px minmax(0, 1fr); column-gap: 12px; align-items: center; padding: 9px 10px; }
-    .now-shot .stage { grid-row: 1 / span 2; border-radius: 6px; }
-    .now-shot .t-row { flex-direction: column; align-items: flex-start; gap: 3px; margin: 0; align-self: end; }
-    .ns-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; align-self: start; margin-top: 4px;
-      font-size: 14px; line-height: 1.3; font-weight: 600; color: var(--white); }
-  }
+  .ns-exit { margin: 10px 0 0; display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 1.3; padding: 7px 8px 7px 9px;
+    border-radius: 8px; background: rgb(219 221 225 / .06); color: var(--ink); }
+  .ns-exit svg { width: 14px; height: 14px; flex: none; color: var(--pink-text); } /* розовый — как метка точки выхода в повестке */
+  .ns-exit span { flex: 1; min-width: 0; }
 
   .next { padding: 11px 13px 12px; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 7px; }
   .next.last { flex: none; } /* последний блок: карточка по содержимому, а не пустая на пол-колонки */
   .nx-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
   .nx-title { font-size: 16.5px; font-weight: 650; color: var(--white); line-height: 1.25; text-wrap: balance; }
-  .nx-steps { list-style: none; margin: 3px 0 0; padding: 9px 0 0; border-top: 1px solid var(--line); display: grid; gap: 8px; }
-  .nx-step { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 9px; align-items: start; }
+  /* шаги заполняют остаток карточки: не влезший по высоте шаг уходит во второй, скрытый столбец — видны только целые шаги */
+  .nx-steps { flex: 1; min-height: 0; list-style: none; margin: 3px 0 0; padding: 9px 0 0; border-top: 1px solid var(--line);
+    display: flex; flex-flow: column wrap; align-content: flex-start; gap: 8px; overflow: clip; } /* clip: фокус не сдвигает список вбок */
+  .nx-step { width: 100%; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 9px; align-items: start; }
   .nx-step .s-ic { width: 22px; height: 22px; border-radius: 6px; }
   .nx-step .s-ic svg { width: 13px; height: 13px; }
   .nx-txt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding-top: 2px;
@@ -254,7 +225,6 @@
   .nx-txt.mono { font-family: var(--mono); font-size: 14px; line-height: 1.5; }
   .k-url .nx-txt { color: var(--cyan); }
   .nx-step .copy { width: 26px; height: 24px; margin: 0; }
-  @media (max-height: 899px) { .nx-step:nth-child(n+3) { display: none; } }
 
   /* колонки с заголовком и прокруткой */
   .col { display: flex; flex-direction: column; }
@@ -263,6 +233,10 @@
   .col-head .count { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .acts .col-head .count { flex-shrink: 0; } /* «шаг 3 / 33» не режется: место уступает подсказка */
   .col-head .count b { color: var(--white); font-weight: 650; }
+  .col-head .pf-n { flex: none; font-size: 14px; color: var(--white); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .col-head .pf-n + .count { margin-left: -6px; } /* «0/11 отмечено» — как одна подпись */
+  @media (min-width: 1001px) and (max-width: 1099px) { .col-head .pf-n + .count { display: none; } } /* хвосту меньше 20px: только «0/11» */
+  .col-head [data-expand] { margin-left: auto; }
   .col-head .hint { font-size: 14px; color: var(--muted); display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
   .col-head .hint kbd { padding: 2px 4px; }
   .col-head .hint .sp { display: contents; }
@@ -371,16 +345,10 @@
   .st-box { container-type: size; align-self: stretch; justify-self: stretch; min-height: 0; display: grid; place-items: center; }
   body.view-stage .st-box .stage { width: min(100cqw, 100cqh * 16 / 9); }
   .dock { align-self: stretch; justify-self: stretch; min-height: var(--dock-min); max-height: 30vh; min-width: 0; overflow: hidden;
-    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 24px; padding: 12px 24px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 24px; padding: 12px 24px;
     background: var(--panel); border-top: 1px solid var(--line); color: var(--ink); font-size: 20px; }
   .dock .cap { font-size: 18px; }
   .dock kbd { font: 600 18px/1 var(--mono); padding: 4px 7px; }
-  .d-time { min-width: 150px; }
-  .d-time strong { display: block; font-size: 38px; line-height: 1.05; font-weight: 650; letter-spacing: -.02em; color: var(--white); font-variant-numeric: tabular-nums; }
-  .d-time strong.paused { color: var(--muted); } /* пауза — нейтрально, без отставания (spec §10.1) */
-  .d-time span { display: block; font-size: 18px; color: var(--muted); white-space: nowrap; }
-  .d-bar { height: 6px; border-radius: 6px; background: var(--panel-2); overflow: hidden; margin-top: 8px; }
-  .d-bar i { display: block; height: 100%; width: var(--p, 0%); background: var(--yellow); border-radius: 6px; }
   /* строка 1 — текущий шаг (номер, иконка, текст, копирование), строка 2 — «Далее» под текстом шага */
   .d-main { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; min-width: 0;
     max-height: calc(30vh - 24px); overflow-y: auto; } /* шаг выше 30vh не обрезается молча: панель прокручивается */
@@ -479,9 +447,7 @@
         <h3>Везде</h3>
         <dl>
           <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>блок назад / вперёд</dd>
-          <dt><kbd>1</kbd><kbd>2</kbd></dt><dd>демо A / B; на заставке таймер встаёт — <kbd>T</kbd> продолжит</dd>
-          <dt><kbd>T</kbd></dt><dd>таймер: старт / пауза</dd>
-          <dt><kbd>R</kbd></dt><dd>сброс таймера блока; R или T за 3 с — отмена</dd>
+          <dt><kbd>1</kbd><kbd>2</kbd></dt><dd>демо A / B</dd>
           <dt><kbd>F</kbd></dt><dd>полный экран</dd>
           <dt><kbd>L</kbd></dt><dd>светлая / тёмная сцена</dd>
           <dt><kbd>?</kbd></dt><dd>эта справка; <kbd>Esc</kbd> — закрыть</dd>

@@ -7,7 +7,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-live-2ea44f.svg)](https://fedoseew.github.io/jmix-demo-runbook/)
 
-An offline presenter runbook for two live [Jmix](https://www.jmix.io/) demos. **Demo A, "AI × Jmix"** (73 minutes, 80 with the optional block) is about AI while developing with Jmix and AI inside Jmix applications. **Demo B, "Jmix from scratch"** (45 minutes, 55 with the optional block) goes from an empty project to an app built from an existing database. One HTML page shows the audience slides on a Jmix background and gives the presenter a console with the agenda, a timer, notes, and step-by-step actions with copyable commands and prompts. The demos and the interface are in Russian; the guides are in both languages.
+An offline presenter runbook for two live [Jmix](https://www.jmix.io/) demos. **Demo A, "AI × Jmix"** (73 minutes, 80 with the optional block) is about AI while developing with Jmix and AI inside Jmix applications. **Demo B, "Jmix from scratch"** (45 minutes, 55 with the optional block) goes from an empty project to an app built from an existing database. One HTML page shows the audience slides on a Jmix background and gives the presenter a console with the agenda, notes, and step-by-step actions with copyable commands and prompts. The demos and the interface are in Russian; the guides are in both languages.
 
 For people from the meetup who want to revisit a demo, repeat it on public repositories and stands ([what you can try today](docs/guide/en/demos.md#what-you-can-try-today)), or build their own runbook on top of it.
 
@@ -34,7 +34,7 @@ No server, build or internet needed. The essential keys (all of them: press `?`,
 | `←` / `→` | previous / next block |
 | `P` | presenter console in a new window (second screen) |
 | `N` | presenter dock at the bottom of the stage (mirrored projector) |
-| `T` | block timer start / pause |
+| `S` | short version: only the `[8]` steps |
 | `J` / `K` | next / previous step in the console or the dock |
 
 ### Preparing a demo
@@ -56,7 +56,7 @@ Or from IntelliJ IDEA: project `~/IdeaProjects/jmix-crm-stand`, run configuratio
 
 | Guide | About |
 |---|---|
-| [Running a demo](docs/guide/en/usage.md) | second screen or mirror, every key, the timer, steps and the short version, pre-flight, troubleshooting |
+| [Running a demo](docs/guide/en/usage.md) | second screen or mirror, every key, steps and the short version, pre-flight, troubleshooting |
 | [Demos A and B](docs/guide/en/demos.md) | audience, goals, timing with optional blocks and exit points, what each block shows, what to prepare |
 | [Editing the content](docs/guide/en/content.md) | the `content.js` schema, block fields, conventions, tests, your own runbook, publishing on GitHub Pages |
 | [Architecture](docs/guide/en/architecture.md) | files, the state model, two-window sync, tests, screenshot and smoke-test tools |
@@ -69,7 +69,7 @@ Also: [open questions for the rehearsal (partly in Russian)](docs/open-questions
 jmix-demo-runbook/
 ├── index.html              markup, CSS, SVG sprite (logo, icons, QR), meta and Open Graph tags
 ├── content.js              content of both demos: slides, notes, steps (globalThis.DEMOS)
-├── core.js                 pure logic without the DOM: state, timer, steps (globalThis.Runbook)
+├── core.js                 pure logic without the DOM: state, steps, typography (globalThis.Runbook)
 ├── app.js                  the DOM: stage, console, mirror dock, keys, window sync
 ├── demo                    demo preparation: stand, database, pre-flight (./demo help)
 ├── test/                   node --test: content, logic, markup, page loading

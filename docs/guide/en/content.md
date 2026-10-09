@@ -42,10 +42,10 @@ The runbook expects exactly two demos, keyed `a` and `b`: the `1` / `2` keys and
 |---|---|---|
 | `id` | the console counter and agenda, the mirror dock | unique within the demo |
 | `title` | slide title, agenda, the «Далее» (next) card | keep it short: long titles wrap on the slide |
-| `minutes` | block timer, agenda, demo totals | integer; 0 for pre-flight |
+| `minutes` | segment width in the agenda and the stage strip, «12′» in the agenda, the next card, demo totals | integer; 0 for pre-flight |
 | `optional` | a hatched segment in the agenda, the «опц.» tag in the next card | totals count the core without optional blocks |
 | `pre` | holding slide on the stage, checklist in the console | first block only; `slide` holds the checklist items |
-| `exit` | agenda marker, a line under the timer, highlighted when behind | starts with «Точка выхода…:»; the console shows the text after the colon |
+| `exit` | agenda marker, «выход» (exit) in the next card, a line under the stage thumbnail | starts with «Точка выхода…:»; the console shows the text after the colon |
 | `flow` | a process strip on the stage under the yellow rule, above the bullets: label chips joined by arrows | 3–5 labels of at most 24 characters each; a strip that breaks the rules is not drawn. Used on A4, A5, A6 and B2 today |
 | `slide` | bullets on the stage | 3–6 bullets, each at most 90 characters |
 | `notes` | the console notes column: a bold lead plus the collapsed rest | every paragraph needs a lead (see below) |
@@ -98,7 +98,7 @@ node --test
 The tests (`test/*.test.mjs`, no dependencies) check:
 
 - content: minute totals (A 73 / 80, B 45 / 55), exit points, unique ids, slide sizes, bullet length, note leads, prompts for model questions, `--no-update`, branches and the stand from the spec, the `flow` rules;
-- `core.js` logic: state, the timer across block changes, steps, the short version, pace, sync, typography;
+- `core.js` logic: state, steps, the short version, the agenda, sync, typography;
 - `index.html` markup: no external resources, text contrast of at least 4.5:1, font size floors, the `?` reference lists every key `app.js` reads.
 
 To eyeball a block, take a screenshot ([tools/shot.mjs](architecture.md#tools)):

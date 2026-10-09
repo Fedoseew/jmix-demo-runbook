@@ -82,7 +82,7 @@
 
 ## Runbook
 
-- [ ] After the rehearsal, block facts, steps and the timer stay in localStorage (`jmix-runbook/v1`); R clears only the current block, and there is no «reset demo» key. Before the demo, delete the key on the demo machine (DevTools → Application → Local Storage) or press R on every block that has a fact.
+- [ ] After the rehearsal, the block, the step of each block, the short version and the theme stay in localStorage (`jmix-runbook/v1`), and there is no «reset demo» key. Before the demo, delete the key on the demo machine (DevTools → Application → Local Storage).
 - [ ] Push order: the README link tables, docs/guide/{ru,en}/demos.md ("ready and on GitHub") and the B5 action link to https://github.com/jmix-framework/jmix-crm/tree/demo/ai-app, …/tree/demo/agent-task and https://github.com/Fedoseew/crm-from-db, which 404 until the branches and the repo are pushed (2026-10-08: only local). Push demo/ai-app and demo/agent-task to jmix-framework/jmix-crm, create Fedoseew/crm-from-db with main and b/01-empty … b/05-agent, and only then push the runbook to main. Then each link must print 200 with `curl -s -o /dev/null -w '%{http_code}' -L <url>`.
 - [ ] After merging to main and the GitHub Pages deploy, and before sharing the link at the meetup: `curl -s -o /dev/null -w '%{http_code}' https://fedoseew.github.io/jmix-demo-runbook/docs/images/stage.jpg` must print 200. It is the `og:image`; messengers cache a link preview without the image if they see a 404.
 - [ ] Rehearse each demo once in mirror mode on the real projector: on blocks with long Studio steps (A5, A6, B2) the dock grows to 30% of the screen, so check that the slide stays readable at that size.

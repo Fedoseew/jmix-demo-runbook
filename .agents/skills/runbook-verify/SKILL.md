@@ -8,7 +8,7 @@ description: Use before committing a change to the Jmix demo runbook or before p
 Run every step; report each as pass/fail with the evidence (command output or screenshot path). Do not claim success without running them.
 
 1. **Tests:** `node --test`. All must pass.
-2. **Two-window smoke:** `node tools/smoke.mjs` (or pass the deployed URL). Expect only `PASS` lines and exit code 0. It covers: stage renders, `P` opens the console, jump to A4, `T` starts the timer, `J`×3 moves the step, the stage dock (`N`) shows the same step, a reload of both windows keeps block, step and running timer, no page errors or external requests.
+2. **Two-window smoke:** `node tools/smoke.mjs` (or pass the deployed URL). Expect only `PASS` lines and exit code 0. It covers: stage renders, `P` opens the console, jump to A4, `J`×3 moves the step, the stage dock (`N`) shows the same step, a reload of both windows keeps block and step, no page errors or external requests.
 3. **Screenshots:** take the set from the `runbook-screenshots` skill into a temp directory (not `docs/images` unless you are regenerating them), plus every block you changed. Open each image and check it against that skill's checklist.
 4. **External requests:** `tools/shot.mjs` and `tools/smoke.mjs` print any request that leaves the page's origin; there must be none. Also `grep -nE "https?://" index.html app.js core.js` — only links, meta/OG tags and comments are allowed, never `src=`, `@import`, `url(` or `fetch`.
 5. **Hard constraints in the diff** (`git diff`): no `console.log` in page files, keys read by `event.code`, new keys listed in the `?` dialog, colours via `:root` tokens, browser APIs guarded with `try/catch`, no regex lookbehind in `core.js`.

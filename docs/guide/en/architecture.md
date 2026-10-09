@@ -8,7 +8,6 @@ A static page with no build step and no dependencies: three scripts and `index.h
 - [State](#state)
 - [Two-window sync](#two-window-sync)
 - [Views](#views)
-- [Timer](#timer)
 - [Constraints](#constraints)
 - [Tests](#tests)
 - [Tools](#tools)
@@ -19,8 +18,8 @@ A static page with no build step and no dependencies: three scripts and `index.h
 |---|---|
 | `index.html` | markup, all CSS (palette tokens in `:root`), the SVG sprite (logo, step icons, repository QR), the `?` reference (`<dialog id="keys">`), meta and Open Graph tags. Loads `content.js`, `core.js`, `app.js` in that order by relative paths |
 | `content.js` | the data for both demos, `globalThis.DEMOS` ([schema](content.md#the-demos-schema)) |
-| `core.js` | pure logic without the DOM, `globalThis.Runbook`: loading and validating state, the timer and block changes, pace, step classification, note leads, typography, `flowOf`. Tested in Node |
-| `app.js` | the DOM: stage, console, mirror dock, keys, copying, the on-screen timer, window sync |
+| `core.js` | pure logic without the DOM, `globalThis.Runbook`: loading and validating state, the agenda, step classification, note leads, typography, `flowOf`. Tested in Node |
+| `app.js` | the DOM: stage, console, mirror dock, keys, copying, window sync |
 | `demo` | bash script for the demo infrastructure, not part of the page: the stand, the crm-from-db database, the pre-flight (`./demo help`, [what runs where](demos.md#what-to-prepare)) |
 | `test/` | `node --test`: `content`, `core`, `html`, `app`, `demo-script`, plus the `load.mjs` loader |
 | `tools/` | `shot.mjs` (screenshot), `smoke.mjs` (two-window smoke test), `capture-fallbacks.mjs` (fallback screenshots from the demo stand, see `assets/README.md`), `browser.mjs` (Chromium launcher for all three), `StandKeyCheck.java` (`./demo check` asks the stand over JMX whether its keys are set; prints only set or missing) |
@@ -30,7 +29,7 @@ A static page with no build step and no dependencies: three scripts and `index.h
 flowchart LR
   html[index.html<br/>markup, CSS, SVG sprite] --> content
   content[content.js<br/>globalThis.DEMOS] --> core[core.js<br/>globalThis.Runbook<br/>pure logic]
-  core --> app[app.js<br/>DOM, keys, timer]
+  core --> app[app.js<br/>DOM, keys, sync]
   content --> app
   app --> stage[Stage<br/>index.html]
   app --> console[Console<br/>?view=console]
@@ -53,13 +52,11 @@ If `content.js` or `core.js` fails to load (a typo after an edit, an old browser
 | `demo` | `'a'` or `'b'` |
 | `index` | the current block's position in the demo |
 | `indexByDemo` | the position in each demo, so an accidental `2` → `1` from either window returns to the same block |
-| `timer` | `{ running, startedAt, elapsedBefore }` for the current block |
-| `elapsed` | actual time per block in seconds: `{ A4: 754, … }` |
 | `steps` | the current step of each block: `{ A4: 3, … }` |
 | `short` | short version on |
 | `light` | light stage |
 
-`Runbook.loadState` checks the type of every field, drops unknown ones, and reads state saved by older versions (without `indexByDemo`). State is never mutated: each change builds a new object and writes it whole (`saveState`). Storage access is wrapped in `try/catch`.
+`Runbook.loadState` checks the type of every field, drops unknown ones, and reads state saved by older versions: without `indexByDemo`, or with the fields of the removed timer (`timer` and `elapsed` are dropped). State is never mutated: each change builds a new object and writes it whole (`saveState`). Storage access is wrapped in `try/catch`.
 
 **Per window:**
 
@@ -90,34 +87,23 @@ sequenceDiagram
   S->>S: syncChanges(prev, next)
   alt demo, block or theme changed
     S->>S: render()
-  else otherwise, each part on its own
-    opt steps or short version changed
-      S->>S: paintSteps()
-    end
-    opt timer or actuals changed
-      S->>S: paintTimer()
-    end
+  else steps or short version changed
+    S->>S: paintSteps()
   end
 ```
 
-`Runbook.syncChanges` decides what to repaint. A full render happens only when the demo, block or theme changes; otherwise steps and the timer are painted in place, each one if it changed, so notes expanded in the console stay expanded.
+`Runbook.syncChanges` decides what to repaint. A full render happens only when the demo, block or theme changes; a step or short-version change is painted in place (`paintSteps`), so notes expanded in the console stay expanded.
 
 ## Views
 
 | View | How to open | Contents |
 |---|---|---|
 | Stage | `index.html` | a 16:9 slide in a `container-type: inline-size` box: counter, title, yellow rule, `flow` strip, bullets, progress strip. For pre-flight, a holding slide with the agenda and the QR code. `fitStage` shrinks bullets from `2.5cqw` down to `2.19cqw` |
-| Console | `P` on the stage, or `index.html?view=console` | agenda, timer and pace, stage thumbnail, the next card, notes with leads, steps, GitHub link |
-| Mirror dock | `N` on the stage | block time, current and next step, key legend; `sizeDock` sets its height from the block's longest step |
+| Console | `P` on the stage, or `index.html?view=console` | agenda, stage thumbnail with the block's exit point, the next card, notes with leads, steps, GitHub link, clock |
+| Mirror dock | `N` on the stage | current and next step, key legend; `sizeDock` sets its height from the block's longest step |
 | Key reference | `?` in any view | `<dialog id="keys">` with every key |
 
 Markup is built with template strings; all content text goes through `Runbook.esc` (escaping) or `Runbook.typo` (escaping plus stage typography).
-
-## Timer
-
-- Block time: `elapsedNow = elapsedBefore + (now − startedAt)` while running. `startedAt` is an absolute time, so F5 or a closed tab doesn't lose time.
-- `Runbook.leaveBlock` on a block change: the time of the block you leave goes into `elapsed` (if it is at least `SKIP_SEC`, 30 s), a running timer continues on the new block from that block's actual, a move onto pre-flight stops it, and going from pre-flight to the first block of the same demo starts it (`running = !to.pre && (timer.running || startsTalk)`).
-- `Runbook.pace` computes plan, actual and the gap over blocks with an actual plus the current block.
 
 ## Constraints
 
@@ -136,7 +122,7 @@ node --test
 ```
 
 - `test/load.mjs` runs project files in `node:vm` with stub globals, so `content.js` and `core.js` are tested without a browser.
-- `core.test.mjs`: logic (state, timer, steps, pace, sync, typography, `flowOf`).
+- `core.test.mjs`: logic (state, including state saved by an older version with the timer, steps, the agenda, sync, typography, `flowOf`).
 - `content.test.mjs`: content rules (see [content.md](content.md#checking-your-changes)).
 - `html.test.mjs`: markup and CSS (external resources, script order, contrast, font sizes, the key reference).
 - `app.test.mjs`: `app.js` without `content.js` or `core.js` reports the reason instead of crashing.
@@ -161,7 +147,7 @@ node tools/shot.mjs index.html /tmp/a6-dock.png '{"demo":"a","index":8}' 1280 72
 
 `stateJSON` goes into `localStorage['jmix-runbook/v1']` before a reload; keys are comma-separated `KeyboardEvent.code` values. JPEG (quality 82) or PNG by extension. A console shot (`?view=console`) gets a fresh stage heartbeat, so it shows the stage as online. It prints page errors and external requests and exits with code 1 if there are any. `SHOT_DELAY_MS` (default 400) is the pause before the shot; 3000 waits for the stage key hint to fade.
 
-**`tools/smoke.mjs`** is a two-window smoke test: stage, `P` opens the console, jump to A4, `T`, `J` ×3, the stage dock shows the same step, and after reloading both windows the block, step and running timer are still there, with no errors or external requests. It prints `PASS` / `FAIL` lines and exits with code 1 on any failure.
+**`tools/smoke.mjs`** is a two-window smoke test: stage, `P` opens the console, jump to A4, `J` ×3, the stage dock shows the same step, and after reloading both windows the block and step are still there, with no errors or external requests. It prints `PASS` / `FAIL` lines and exits with code 1 on any failure.
 
 ```bash
 node tools/smoke.mjs            # index.html next to tools/

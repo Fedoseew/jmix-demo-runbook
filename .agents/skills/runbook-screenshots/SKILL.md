@@ -10,8 +10,8 @@ node tools/shot.mjs <url|path> <out.png|out.jpg> [stateJSON|-] [width] [height] 
 ```
 
 - Playwright: env `PLAYWRIGHT_MODULE` (module path or package name), else `playwright`, else `playwright-core`. Browser: env `CHROME_PATH` (optional). If none is available: `npm i --no-save playwright && npx playwright install chromium`.
-- `stateJSON` is written to `localStorage['jmix-runbook/v1']`, then the page reloads. Fields: `demo` (`"a"`/`"b"`), `index` (block position, pre-flight = 0), `steps` (`{"A4":3}`, zero-based), `short`, `light`, `timer`, `elapsed`.
-- `codes`: comma-separated `KeyboardEvent.code` values pressed after load: `KeyN` dock, `KeyJ`/`KeyK` step, `KeyS` short version, `KeyL` light, `ArrowRight`/`ArrowLeft` block, `Slash` key reference, `KeyT` timer.
+- `stateJSON` is written to `localStorage['jmix-runbook/v1']`, then the page reloads. Fields: `demo` (`"a"`/`"b"`), `index` (block position, pre-flight = 0), `steps` (`{"A4":3}`, zero-based), `short`, `light`.
+- `codes`: comma-separated `KeyboardEvent.code` values pressed after load: `KeyN` dock, `KeyJ`/`KeyK` step, `KeyS` short version, `KeyL` light, `ArrowRight`/`ArrowLeft` block, `Slash` key reference.
 - `.jpg`/`.jpeg` → JPEG quality 82, otherwise PNG.
 - A console URL (`'index.html?view=console'`, quote it in the shell) gets a fresh stage heartbeat, so the header shows «Сцена · на связи».
 - `SHOT_DELAY_MS=3000` waits for the stage key hint (shown 2.5 s after load) to fade. Use it for every stage shot meant for docs.
@@ -43,6 +43,6 @@ Scratch shots go to a temp directory, never into the repo.
 
 - Stage: last bullet not clipped; bullets not visibly smaller than neighbours' blocks; `flow` strip on one line; no hyphenated word split; counter and progress strip correct.
 - Holding slide: agenda readable, QR crisp with a white quiet zone, repository URL visible.
-- Dock: current step fully readable (Studio steps and lines to say are never truncated), slide still 16:9 and readable, no overrun or minus shown.
+- Dock: current step fully readable (Studio steps and lines to say are never truncated), slide still 16:9 and readable.
 - Light stage: text contrast, the "now" segment brighter than "done".
 - Console: active step in the top third, leads bold on one line, no text under 14px, GitHub link in the header.

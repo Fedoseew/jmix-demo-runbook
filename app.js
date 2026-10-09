@@ -1,17 +1,15 @@
-// app.js — DOM runbook: сцена, консоль докладчика, таймер, клавиши, синхронизация окон. Логика — в core.js (globalThis.Runbook).
+// app.js — DOM runbook: сцена, консоль докладчика, панель зеркала, клавиши, синхронизация окон. Логика — в core.js (globalThis.Runbook).
 // Состояние не мутируется: каждое изменение собирает новый объект. Обращения к window/localStorage/location —
 // только из функций, которые вызывает DOMContentLoaded (тест загружает файл с фальшивым document).
 (function () {
   'use strict';
 
   const STATUS_MS = 3000;
-  const UNDO_MS = 3000;
-  const TICK_MS = 500;
   const STAGE_FONT_START_CQW = 2.5; // 32px при 1280; плотные слайды (A0, B0) ужимает fitStage
   const STAGE_FONT_STEP_CQW = 0.04;
-  const CLOCK_MS = 30000;
+  const MINUTE_MS = 60000;
   const COPY_FLASH_MS = 1400;
-  const NEXT_STEPS_SHOWN = 4;
+  const NEXT_STEPS_SHOWN = 6; // сколько влезет по высоте, решает CSS (.nx-steps)
   const STEP_TOP_RATIO = 0.28;  // активный шаг — в верхней трети колонки
   const STEP_TOP_GAP_PX = 6;
   const MONO_KINDS = new Set(['shell', 'git', 'url']);
@@ -29,11 +27,9 @@
   let state = null;       // общее для окон: хранится в localStorage
   let view = 'stage';     // своё у окна: из URL, в localStorage не пишется
   let dockOpen = false;   // своё у окна: панель для зеркала, хранится в sessionStorage окна
-  let tick = null;
   let clockTick = null;
   let statusTimer = null;
   let hintTimer = null;
-  let undoReset = null;   // { id, timer, fact, until } — R или T в течение UNDO_MS возвращают блок как было
   let checks = {};        // отметки чек-листа по id блока: живут в окне до F5 (spec §10.5 — не сохраняем)
 
   const $ = id => document.getElementById(id);
@@ -45,11 +41,6 @@
   const block = () => blocks()[state.index];
   const steps = () => Runbook.classifyActions(block().actions);
   const stepIndex = () => Runbook.stepOf(state, block().id, steps().length);
-  const live = () => Runbook.elapsedNow(state.timer, Date.now());
-  const progressPct = b => (b.minutes ? Math.min(100, live() / (b.minutes * 60) * 100) : 0);
-  const idleTimer = elapsedBefore => ({ running: false, startedAt: null, elapsedBefore });
-  const withElapsed = (id, sec) => ({ ...state.elapsed, [id]: sec });
-  const withoutElapsed = id => Object.fromEntries(Object.entries(state.elapsed).filter(([k]) => k !== id));
 
   function safeStorage() {
     try { return window.localStorage; } catch (_) { return { getItem: () => null, setItem() {} }; }
@@ -85,8 +76,7 @@
     const strip = talks.map(x => {
       const i = all.indexOf(x);
       const cls = i < state.index ? 'done' : i === state.index ? 'cur' : '';
-      const p = cls === 'cur' ? `;--p:${progressPct(x)}%` : '';
-      return `<span class="st-seg ${cls}" style="--m:${x.minutes}${p}"></span>`;
+      return `<span class="st-seg ${cls}" style="--m:${x.minutes}"></span>`;
     }).join('');
     const chips = Runbook.flowOf(b);
     const flow = chips.length
@@ -133,9 +123,18 @@
     });
   }
 
+  // «Далее»: не влезший по высоте шаг уходит во второй, скрытый столбец .nx-steps — убираем его и из Tab
+  function fitNext() {
+    const list = $('app').querySelector('.nx-steps');
+    if (!list) return;
+    const right = list.getBoundingClientRect().right;
+    for (const li of list.children) li.inert = li.getBoundingClientRect().left >= right - 1;
+  }
+
   function fitAll() {
     $('app').querySelectorAll('.stage').forEach(fitStage);
     fitLeads();
+    fitNext();
   }
 
   // ---------------- консоль докладчика ----------------
@@ -149,56 +148,36 @@
 
   function agendaSegHTML(a, i) {
     const cls = ['ag-seg', a.state, a.pre && 'pre', a.optional && 'opt', a.exit && 'exit'].filter(Boolean).join(' ');
-    const fact = a.fact != null ? ` · факт ${Runbook.fmt(a.fact)}${a.over != null ? ` (${a.over > 0 ? '+' : '-'}${Runbook.fmt(Math.abs(a.over))})` : ''}` : '';
-    const tip = `${a.id} · ${a.title}${a.pre ? '' : ` · ${a.minutes} мин`}${a.optional ? ' · опционально' : ''}${a.exit ? ` · ${a.exit}` : ''}${fact}`;
-    let l2;
-    if (a.pre) l2 = `<div class="ag-l2">${{ todo: 'чек-лист', cur: 'идёт', done: 'готово' }[a.state]}</div>`;
-    else if (a.state === 'done' && a.fact != null) {
-      l2 = `<div class="ag-l2"><span class="f-lbl">факт </span><span class="${a.over > 0 ? 'over' : 'under'}">${Runbook.fmt(a.fact)}</span></div>`;
-    } else if (a.state === 'cur') {
-      // название, пока нет времени; с первой секунды — факт (его обновляет paintTimer)
-      l2 = `<div class="ag-l2 title" data-ag="l2"><span data-ag="title">${Runbook.esc(a.title)}</span><span data-ag="fact" hidden><span class="f-lbl">факт </span><span data-ag="factv"></span></span></div>`;
-    } else l2 = `<div class="ag-l2 title">${Runbook.esc(a.title)}</div>`;
+    const tip = `${a.id} · ${a.title}${a.pre ? '' : ` · ${a.minutes} мин`}${a.optional ? ' · опционально' : ''}${a.exit ? ` · ${a.exit}` : ''}`;
+    const l2 = a.pre
+      ? `<div class="ag-l2">${{ todo: 'чек-лист', cur: 'идёт', done: 'готово' }[a.state]}</div>`
+      : `<div class="ag-l2 title">${Runbook.esc(a.title)}</div>`;
     const mark = a.state === 'done' && !a.pre ? '<svg class="ok" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>' : '';
     return `<button type="button" class="${cls}" style="--m:${a.minutes}" data-go="${i}" title="${Runbook.esc(tip)}"${a.state === 'cur' ? ' aria-current="step"' : ''}>
-      <div class="ag-l1">${mark}<b>${Runbook.esc(a.id)}</b>${a.pre ? '' : `<span class="m">${a.minutes}′</span>`}</div>${l2}${a.state === 'cur' ? '<i class="now"></i>' : ''}</button>`;
+      <div class="ag-l1">${mark}<b>${Runbook.esc(a.id)}</b>${a.pre ? '' : `<span class="m">${a.minutes}′</span>`}</div>${l2}</button>`;
   }
 
   function agendaHTML() {
     const t = Runbook.totals(blocks());
-    const list = Runbook.agenda(blocks(), state.index, state.elapsed);
+    const list = Runbook.agenda(blocks(), state.index);
     return `<section class="panel agenda" aria-label="Повестка">
       <div class="ag-head"><span class="cap">Повестка</span><span class="sum">${list.filter(a => !a.pre).length} блоков · ${t.core} мин + ${t.all - t.core} опц.</span>
         <span class="ag-legend"><span><i class="l-cur"></i>сейчас</span><span><i class="l-opt"></i>опционально</span><span><i class="l-exit"></i>точка выхода</span></span></div>
       <div class="ag-track">${list.map(agendaSegHTML).join('')}</div></section>`;
   }
 
-  // Решение «сокращать или нет» — рядом с таймером; какой из двух текстов виден, решает paintTimer.
+  // Точка выхода текущего блока — под миниатюрой: что сокращать, если время поджимает (решает докладчик).
   function exitHTML(b) {
     if (!b.exit) return '';
     const short = Runbook.hasShort(steps());
     const what = Runbook.esc(short ? 'короткая версия' : b.exit.replace(/^Точка выхода[^:]*:\s*/, '').replace(/^при отставании\s*(—\s*)?/, ''));
-    return `<p class="t-exit" data-t="exit">${icon('i-exit')}<span data-x="late" hidden><b>Отстаём</b> → ${what}</span><span data-x="ok">Точка выхода: ${what}</span>${short ? '<kbd>S</kbd>' : ''}</p>`;
+    return `<p class="ns-exit">${icon('i-exit')}<span>Точка выхода: ${what}</span>${short ? '<kbd>S</kbd>' : ''}</p>`;
   }
 
-  function timerHTML(b) {
-    if (b.pre) {
-      const t = Runbook.totals(blocks());
-      return `<section class="panel timer" aria-label="Чек-лист">
-        <div class="t-row"><span class="cap">Чек-лист</span><span class="t-live wait">таймер стоит</span></div>
-        <div class="t-big"><strong data-t="checked">0/${b.slide.length}</strong><span>пунктов</span></div>
-        <div class="t-bar ok" data-t="bar"><i></i></div>
-        <p class="t-idle">Зал видит заставку. Таймер стартует сам при переходе к первому блоку, переход на заставку его останавливает, <kbd>T</kbd> — пауза / старт. План: ${t.core} мин + ${t.all - t.core} опц.</p></section>`;
-    }
-    return `<section class="panel timer" aria-label="Таймер блока">
-      <div class="t-row"><span class="cap">Блок ${Runbook.esc(b.id)} · осталось</span><span class="t-live" data-t="live">идёт</span></div>
-      <div class="t-big"><strong data-t="left">${Runbook.fmt(b.minutes * 60)}</strong><span>из ${Runbook.fmt(b.minutes * 60)}</span></div>
-      <div class="t-bar" data-t="bar"><i></i></div>
-      <dl class="t-stats">
-        <div><dt>План</dt><dd data-t="plan"></dd></div>
-        <div><dt>Факт</dt><dd data-t="fact"></dd></div>
-        <div><dt data-t="deltaLbl">Запас</dt><dd data-t="delta"></dd></div>
-      </dl>${exitHTML(b)}</section>`;
+  function nowShotHTML(b) {
+    return `<section class="panel now-shot" aria-label="Сейчас на экране">
+      <div class="t-row"><span class="cap">На экране зала</span><span class="t-live" data-onair></span></div>
+      ${stageHTML(false)}${exitHTML(b)}</section>`;
   }
 
   function nextHTML() {
@@ -229,9 +208,12 @@
       const [lead, rest] = Runbook.splitLead(t);
       return `<details class="note"><summary><span class="n-i">${i + 1}</span><span class="n-text">${lead ? `<span class="n-lead">${Runbook.esc(lead)}</span>` : ''}<span class="n-rest">${Runbook.esc(rest)}</span></span>${icon('i-chev', 'chev')}</summary></details>`;
     }).join('');
-    const count = b.pre ? `${b.slide.length} пунктов · ${b.notes.length} заметок` : `${b.notes.length} абзацев`;
+    // число отметок — свой элемент шапки: на узкой колонке режется только хвост, «0/11» видно всегда
+    const count = b.pre
+      ? `<b class="pf-n" data-checked>${checkedText(b)}</b><span class="count">отмечено · ${b.notes.length} заметок</span>`
+      : `<span class="count">${b.notes.length} абзацев</span>`;
     return `<section class="panel col" aria-label="Заметки">
-      <div class="col-head"><h2>${b.pre ? 'Чек-лист' : 'Заметки'}</h2><span class="count">${count}</span><span class="spacer"></span><button type="button" class="ghost" data-expand>Раскрыть все</button></div>
+      <div class="col-head"><h2>${b.pre ? 'Чек-лист' : 'Заметки'}</h2>${count}<button type="button" class="ghost" data-expand>Раскрыть все</button></div>
       <div class="col-body">${checklist}<div class="notes">${notes}</div></div></section>`;
   }
 
@@ -269,7 +251,7 @@
         <div class="c-brand">${logo('')}<span class="cap">Консоль докладчика</span></div>
         <nav class="seg-ctl" aria-label="Демо">${tabs}</nav>
         <span class="c-pill" data-link><i></i>Сцена<span data-link-text></span></span>
-        <div class="c-keys"><span><kbd>←</kbd><kbd>→</kbd> блок</span><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>C</kbd> копия</span><span><kbd>T</kbd> таймер</span><span><kbd>R</kbd> сброс</span><span class="k-demo"><kbd>1</kbd><kbd>2</kbd> демо</span><span><kbd>F</kbd> экран</span><span class="k-light"><kbd>L</kbd> свет</span></div>
+        <div class="c-keys"><span><kbd>←</kbd><kbd>→</kbd> блок</span><span><kbd>J</kbd><kbd>K</kbd> шаг</span><span><kbd>C</kbd> копия</span><span class="k-demo"><kbd>1</kbd><kbd>2</kbd> демо</span><span><kbd>F</kbd> экран</span><span><kbd>L</kbd> свет</span></div>
         <p class="c-away">Окно не в фокусе — клавиши уходят в другое окно; щёлкните по консоли</p>
         <a class="c-gh" href="https://github.com/Fedoseew/jmix-demo-runbook" target="_blank" rel="noopener" title="Репозиторий runbook на GitHub" aria-label="GitHub: репозиторий runbook">${icon('i-github')}<span>GitHub</span></a>
         <span class="c-clock" data-clock>${clockText()}</span>
@@ -277,8 +259,7 @@
       ${agendaHTML()}
       <div class="c-main">
         <div class="c-left">
-          ${timerHTML(b)}
-          <section class="panel now-shot" aria-label="Сейчас на экране"><div class="t-row"><span class="cap">На экране зала</span><span class="t-live" data-onair></span></div>${stageHTML(false)}<div class="ns-title">${Runbook.esc(b.pre ? 'Заставка · скоро начинаем' : b.title)}</div></section>
+          ${nowShotHTML(b)}
           ${nextHTML()}
         </div>
         ${notesHTML(b)}
@@ -377,17 +358,12 @@
   }
 
   // ---------------- панель для зеркала (клавиша N на сцене) ----------------
-  // Скелет; время рисует paintTimer, шаги — paintSteps, поэтому панель не перерисовывается целиком.
-  // Текущий шаг и «Далее» — строками одной сетки: тексту шага достаётся почти вся ширина панели.
+  // Скелет; шаги рисует paintSteps, поэтому панель не перерисовывается целиком.
+  // Текущий шаг и «Далее» — строками одной сетки: тексту шага достаётся вся ширина панели до легенды.
   function dockHTML() {
     if (view !== 'stage' || !dockOpen) return '';
-    const b = block();
-    const time = b.pre
-      ? `<strong>–:––</strong><span>таймер стоит · ${Runbook.esc(b.id)}</span>`
-      : `<strong data-dock-left></strong><span data-dock-state></span><div class="d-bar"><i></i></div>`;
     const shortKey = Runbook.hasShort(steps()) ? '<span><kbd>S</kbd> 8′</span>' : '';
     return `<aside class="dock" aria-label="Панель докладчика">
-      <div class="d-time">${time}</div>
       <div class="d-main" data-dock-main></div>
       <div class="d-keys"><span class="d-legend"><span><kbd>J</kbd><kbd>K</kbd> шаг</span>${shortKey}<span class="d-two"><span><kbd>N</kbd> скрыть</span><span><kbd>?</kbd> все</span></span></span><span class="d-msg" data-dock-msg aria-live="polite"></span></div>
     </aside>`;
@@ -445,17 +421,6 @@
     fitAll();
   }
 
-  function paintDockTimer(pct) {
-    const left = q('[data-dock-left]');
-    if (!left) return; // панель закрыта или блок без таймера
-    // Зеркало видит зал: без минуса и розового — перерасход показывает только консоль (spec §10.1).
-    // Пауза — нейтрально: приглушённые цифры и подпись, чтобы забытый T был заметен.
-    left.textContent = Runbook.fmt(Math.max(0, Runbook.remaining(block().minutes, live())));
-    left.classList.toggle('paused', !state.timer.running);
-    setText('[data-dock-state]', `${state.timer.running ? 'осталось' : 'пауза'} · ${block().id}`);
-    q('.d-bar').style.setProperty('--p', `${pct}%`);
-  }
-
   function loadDock() {
     try { return sessionStorage.getItem(DOCK_KEY) === '1'; } catch (_) { return false; } // ponytail: нет sessionStorage — панель просто не запоминается
   }
@@ -477,76 +442,16 @@
     sizeDock();
     fitAll();
     paintSteps(false);
-    paintTimer();
     paintStageLink();
-    ensureTick();
     ensureClock();
     document.title = `${block().id} · ${view === 'console' ? 'Консоль' : 'Сцена'} — Jmix Runbook`;
-  }
-
-  // Без перерисовки: полоса сцены (она есть и в миниатюре консоли), числа консоли или время панели зеркала.
-  function paintTimer() {
-    const pct = progressPct(block());
-    $('app').querySelectorAll('.st-seg.cur').forEach(seg => seg.style.setProperty('--p', `${pct}%`));
-    if (view === 'console') paintConsoleTimer(pct); else paintDockTimer(pct);
   }
 
   const q = sel => $('app').querySelector(sel);
   const setText = (sel, text) => { const el = q(sel); if (el) el.textContent = text; };
 
-  // Чек-лист живёт в DOM (и в checks до F5): число отмеченных считаем по чекбоксам.
-  function paintChecklist() {
-    const boxes = [...$('app').querySelectorAll('.pf-list input')];
-    const done = boxes.filter(x => x.checked).length;
-    setText('[data-t="checked"]', `${done}/${boxes.length}`);
-    q('[data-t="bar"]')?.style.setProperty('--p', `${boxes.length ? done / boxes.length * 100 : 0}%`);
-  }
-
-  function paintPace(sec) {
-    const { plan, fact, delta } = Runbook.pace(blocks(), state.index, state.elapsed, sec);
-    const late = delta > 0;
-    setText('[data-t="plan"]', Runbook.fmt(plan));
-    setText('[data-t="fact"]', Runbook.fmt(fact));
-    setText('[data-t="deltaLbl"]', late ? 'Отстаём' : 'Запас');
-    setText('[data-t="delta"]', late ? `+${Runbook.fmt(delta)}` : Runbook.fmt(-delta));
-    q('[data-t="delta"]').classList.toggle('late', late);
-    const exit = q('[data-t="exit"]');
-    if (!exit) return;
-    exit.classList.toggle('late', late);
-    exit.title = late ? `Отстаём на +${Runbook.fmt(delta)}` : '';
-    exit.querySelector('[data-x="late"]').hidden = !late;
-    exit.querySelector('[data-x="ok"]').hidden = late;
-  }
-
-  // Текущий сегмент повестки: полоса времени; название, пока времени нет, и факт — как только оно пошло.
-  function paintAgendaCurrent(b, sec, pct) {
-    q('.ag-seg.cur')?.style.setProperty('--p', `${pct}%`);
-    const l2 = q('[data-ag="l2"]');
-    if (!l2) return;
-    const started = sec >= 1;
-    l2.classList.toggle('title', !started);
-    l2.querySelector('[data-ag="title"]').hidden = started;
-    l2.querySelector('[data-ag="fact"]').hidden = !started;
-    const value = l2.querySelector('[data-ag="factv"]');
-    value.textContent = Runbook.fmt(sec);
-    value.classList.toggle('over', sec > b.minutes * 60);
-  }
-
-  function paintConsoleTimer(pct) {
-    const b = block(), sec = live();
-    paintAgendaCurrent(b, sec, pct);
-    if (b.pre) { paintChecklist(); return; }
-    const left = Runbook.remaining(b.minutes, sec);
-    const paused = !state.timer.running;
-    setText('[data-t="live"]', paused ? 'пауза — T' : 'идёт');
-    q('[data-t="live"]').classList.toggle('wait', paused);
-    setText('[data-t="left"]', Runbook.fmt(left));
-    q('[data-t="left"]').classList.toggle('late', left < 0);
-    q('[data-t="left"]').classList.toggle('paused', paused);
-    q('[data-t="bar"]').style.setProperty('--p', `${pct}%`);
-    q('[data-t="bar"]').classList.toggle('late', left < 0);
-    paintPace(sec);
-  }
+  // Отметки чек-листа живут в checks до F5: «3/12 отмечено» в шапке колонки.
+  const checkedText = b => `${(checks[b.id] || []).filter(Boolean).length}/${b.slide.length}`;
 
   const paintClock = () => setText('[data-clock]', clockText());
 
@@ -576,60 +481,16 @@
 
   const paintFocus = () => document.documentElement.classList.toggle('away', !document.hasFocus());
 
+  // Часы — единственное время в консоли: перерисовка на границе минуты, а не с опозданием на интервал.
   function ensureClock() {
-    if (view === 'console' && !clockTick) clockTick = setInterval(paintClock, CLOCK_MS);
-  }
-
-  function ensureTick() {
-    if (state.timer.running && !tick) tick = setInterval(paintTimer, TICK_MS);
-    else if (!state.timer.running && tick) { clearInterval(tick); tick = null; }
-  }
-
-  // ---------------- таймер ----------------
-  // Время текущего блока уходит в elapsed, таймер встаёт на паузу.
-  function stopTimerIntoElapsed() {
-    const sec = Math.round(live());
-    state = { ...state, elapsed: sec > 0 ? withElapsed(block().id, sec) : state.elapsed, timer: idleTimer(sec) };
-  }
-
-  // Таймер и факт меняются без render(): в консоли он схлопнул бы раскрытые заметки.
-  function commitTimer() { commit(); paintTimer(); ensureTick(); }
-
-  // R без модификатора легко нажать случайно: R или T в течение UNDO_MS возвращают время и ход таймера как было.
-  const canUndo = id => Boolean(undoReset) && undoReset.id === id && Date.now() < undoReset.until;
-
-  function undoResetTimer() {
-    const { id, timer, fact } = undoReset;
-    undoReset = null;
-    state = { ...state, elapsed: fact > 0 ? withElapsed(id, fact) : withoutElapsed(id), timer };
-    announce('Сброс отменён');
-    commitTimer();
-  }
-
-  function toggleTimer() {
-    if (block().minutes === 0) return;
-    if (canUndo(block().id)) { undoResetTimer(); return; } // T сразу после R — «верни как было», а не старт с нуля
-    if (state.timer.running) stopTimerIntoElapsed();
-    else state = { ...state, timer: { running: true, startedAt: Date.now(), elapsedBefore: state.elapsed[block().id] || 0 } };
-    commitTimer();
-  }
-
-  function resetTimer() {
-    const { id, minutes } = block();
-    if (minutes === 0) return;
-    if (canUndo(id)) { undoResetTimer(); return; }
-    undoReset = { id, timer: state.timer, fact: state.elapsed[id], until: Date.now() + UNDO_MS };
-    state = { ...state, elapsed: withoutElapsed(id), timer: idleTimer(0) };
-    announce('Таймер блока сброшен — R или T в течение 3 с вернёт время');
-    commitTimer();
+    if (view !== 'console' || clockTick) return;
+    const next = () => { clockTick = setTimeout(() => { paintClock(); next(); }, MINUTE_MS - Date.now() % MINUTE_MS); };
+    next();
   }
 
   // ---------------- навигация ----------------
-  // При переходе идущий таймер идёт дальше, на заставке встаёт, с заставки на первый блок стартует сам (Runbook.leaveBlock); T — пауза / старт.
   function moveTo(patch) {
-    const next = { ...state, ...patch };
-    const to = DEMOS[next.demo].blocks[next.index];
-    state = { ...next, ...Runbook.leaveBlock(state, block(), to, Date.now(), blocks()) };
+    state = { ...state, ...patch };
     commit();
     render();
   }
@@ -660,7 +521,7 @@
   const viewKeys = () => (view === 'console' || dockOpen ? STEP_KEYS : {});
 
   function onKey(e) {
-    if (e.repeat) return; // зажатая → пролетала бы блоки, зажатая R — переключала бы сброс и отмену
+    if (e.repeat) return; // зажатая → пролетала бы блоки
     if (!Runbook.shouldHandleKey(e) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.code === 'Space' && e.target.closest?.('button, summary, input, a')) return;
     const action = viewKeys()[e.code];
@@ -674,8 +535,6 @@
       case 'ArrowLeft': go(state.index - 1); break;
       case 'Digit1': setDemo('a'); break;
       case 'Digit2': setDemo('b'); break;
-      case 'KeyT': toggleTimer(); break;
-      case 'KeyR': resetTimer(); break;
       case 'KeyF': Runbook.toggleFullscreen(document); break;
       case 'KeyP': if (view !== 'stage') return; openConsole(); break;
       case 'KeyN': if (view !== 'stage') return; toggleDock(); break;
@@ -728,7 +587,7 @@
   function onChange(e) {
     if (!e.target.matches('.pf-list input')) return;
     checks = { ...checks, [block().id]: [...$('app').querySelectorAll('.pf-list input')].map(x => x.checked) };
-    paintChecklist();
+    setText('[data-checked]', checkedText(block()));
     if (!e.target.matches(':focus-visible')) e.target.blur();
   }
 
@@ -737,9 +596,8 @@
     const next = readState();
     const ch = Runbook.syncChanges(state, next);
     state = next;
-    if (ch.full) { render(); return; }
-    if (ch.steps) paintSteps(true);
-    if (ch.timer) { paintTimer(); ensureTick(); }
+    if (ch.full) render();
+    else if (ch.steps) paintSteps(true);
   }
 
   // ---------------- инициализация ----------------

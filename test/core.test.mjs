@@ -14,11 +14,9 @@ test('clampIndex держит индекс в границах', () => {
   assert.equal(Runbook.clampIndex(0, 0), 0);
 });
 
-test('defaultState — демо A, блок 0, таймер стоит, шагов и флагов нет', () => {
+test('defaultState — демо A, блок 0, шагов и флагов нет', () => {
   assert.deepEqual(plain(Runbook.defaultState()), {
-    demo: 'a', index: 0,
-    timer: { running: false, startedAt: null, elapsedBefore: 0 },
-    elapsed: {}, steps: {}, short: false, light: false, indexByDemo: {},
+    demo: 'a', index: 0, steps: {}, short: false, light: false, indexByDemo: {},
   });
 });
 
@@ -83,31 +81,6 @@ test('copyText возвращает true при успехе и false, если 
   assert.equal(await Runbook.copyText('abc', undefined), false);
 });
 
-test('fmt форматирует секунды как mm:ss со знаком', () => {
-  assert.equal(Runbook.fmt(0), '00:00');
-  assert.equal(Runbook.fmt(65), '01:05');
-  assert.equal(Runbook.fmt(-80), '-01:20');
-  assert.equal(Runbook.fmt(3600), '60:00');
-});
-
-test('fmt не печатает «-00:00», если значение округляется до нуля', () => {
-  assert.equal(Runbook.fmt(-0.4), '00:00');
-  assert.equal(Runbook.fmt(-0), '00:00');
-  assert.equal(Runbook.fmt(-0.6), '-00:01');
-});
-
-test('elapsedNow учитывает время с startedAt, даже если вкладка была закрыта', () => {
-  const t = { running: true, startedAt: 1_000_000, elapsedBefore: 30 };
-  assert.equal(Runbook.elapsedNow(t, 1_000_000 + 90_000), 120);
-  assert.equal(Runbook.elapsedNow({ running: false, startedAt: null, elapsedBefore: 30 }, 5_000_000), 30);
-});
-
-test('remaining — план минус факт, 0 для pre-блока без времени', () => {
-  assert.equal(Runbook.remaining(10, 0), 600);
-  assert.equal(Runbook.remaining(10, 660), -60);
-  assert.equal(Runbook.remaining(0, 0), 0);
-});
-
 test('toggleFullscreen не роняет промис, если браузер отказал или API нет', async () => {
   const rejecting = {
     fullscreenElement: null,
@@ -123,21 +96,16 @@ test('toggleFullscreen не роняет промис, если браузер �
   assert.ok(entered);
 });
 
-test('loadState отбрасывает значения таймера и факта с неверными типами', () => {
+test('loadState читает состояние времён таймера: timer и elapsed отбрасываются, остальное на месте', () => {
   const stored = {
-    timer: { running: true, startedAt: 'вчера', elapsedBefore: '12' },
-    elapsed: { A0: '12', A1: 30, A2: null, A3: NaN },
+    demo: 'a', index: 6, steps: { A4: 3 }, short: true, light: false, indexByDemo: { b: 2 },
+    timer: { running: true, startedAt: 1_000_000, elapsedBefore: 42 },
+    elapsed: { A0: 300, A1: 610 },
   };
   const s = Runbook.loadState({ getItem: () => JSON.stringify(stored) });
-  assert.deepEqual(plain(s.timer), { running: false, startedAt: null, elapsedBefore: 0 });
-  assert.deepEqual(plain(s.elapsed), { A1: 30 });
-  assert.equal(Runbook.elapsedNow(s.timer, Date.now()), 0);
-});
-
-test('loadState сохраняет корректно запущенный таймер', () => {
-  const timer = { running: true, startedAt: 1_000_000, elapsedBefore: 42 };
-  const s = Runbook.loadState({ getItem: () => JSON.stringify({ timer }) });
-  assert.deepEqual(plain(s.timer), timer);
+  assert.deepEqual(plain(s), { demo: 'a', index: 6, steps: { A4: 3 }, short: true, light: false, indexByDemo: { b: 2 } });
+  const broken = Runbook.loadState({ getItem: () => JSON.stringify({ index: 2, timer: 'вчера', elapsed: [1, 2] }) });
+  assert.deepEqual(plain(broken), { ...plain(Runbook.defaultState()), index: 2 });
 });
 
 test('loadState принимает шаги только как неотрицательные целые, флаги только true', () => {
@@ -209,37 +177,24 @@ test('stepOf читает шаг блока и держит его в грани
   assert.equal(Runbook.stepOf(s, 'A6', 32), 31);
 });
 
-test('pace считает только блоки с фактом и не больше плана текущего блока', () => {
-  const blocks = [
-    { id: 'p', pre: true, minutes: 0 }, { id: 'x', minutes: 10 },
-    { id: 'o', minutes: 5, optional: true }, { id: 'y', minutes: 8 }, { id: 'z', minutes: 4 },
-  ];
-  assert.deepEqual(plain(Runbook.pace(blocks, 3, { x: 660 }, 120)), { plan: 720, fact: 780, delta: 60 });
-  assert.deepEqual(plain(Runbook.pace(blocks, 3, { x: 660, o: 300 }, 120)), { plan: 1020, fact: 1080, delta: 60 });
-  assert.deepEqual(plain(Runbook.pace(blocks, 3, { x: 660 }, 600)), { plan: 1080, fact: 1260, delta: 180 });
-  assert.deepEqual(plain(Runbook.pace(blocks, 0, {}, 0)), { plan: 0, fact: 0, delta: 0 });
-});
-
-test('agenda размечает пройденные, текущий и будущие блоки с фактом и перерасходом', () => {
+test('agenda размечает пройденные, текущий и будущие блоки, опциональные и точки выхода', () => {
   const blocks = [{ id: 'p', pre: true, minutes: 0, title: 'P' }, { id: 'x', minutes: 10, title: 'X', exit: 'выход' }, { id: 'y', minutes: 5, optional: true, title: 'Y' }];
-  const a = Runbook.agenda(blocks, 1, { p: 30, x: 700 });
+  const a = Runbook.agenda(blocks, 1);
   assert.deepEqual(a.map(i => i.state), ['done', 'cur', 'todo']);
-  assert.equal(a[0].over, null);
-  assert.equal(a[1].fact, 700);
-  assert.equal(a[1].over, 100);
+  assert.equal(a[0].pre, true);
   assert.equal(a[1].exit, 'выход');
-  assert.equal(a[2].fact, null);
+  assert.equal(a[1].minutes, 10);
+  assert.equal(a[2].exit, null);
   assert.equal(a[2].optional, true);
 });
 
-test('syncChanges различает смену блока, шага и таймера', () => {
+test('syncChanges различает смену блока и шага', () => {
   const base = Runbook.defaultState();
-  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, index: 2 })), { full: true, steps: false, timer: false });
-  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, light: true })), { full: true, steps: false, timer: false });
-  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, steps: { A4: 2 } })), { full: false, steps: true, timer: false });
-  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, short: true })), { full: false, steps: true, timer: false });
-  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, elapsed: { A4: 5 } })), { full: false, steps: false, timer: true });
-  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, timer: { running: true, startedAt: 1, elapsedBefore: 0 } })), { full: false, steps: false, timer: true });
+  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, index: 2 })), { full: true, steps: false });
+  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, light: true })), { full: true, steps: false });
+  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, steps: { A4: 2 } })), { full: false, steps: true });
+  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base, short: true })), { full: false, steps: true });
+  assert.deepEqual(plain(Runbook.syncChanges(base, { ...base })), { full: false, steps: false });
 });
 
 test('viewOf: консоль только по ?view=console', () => {
@@ -255,64 +210,6 @@ test('loadState: позиция по демо — только a/b и неотр
   assert.deepEqual(plain(s.indexByDemo), { a: 3 });
   const t = Runbook.loadState({ getItem: () => JSON.stringify({ indexByDemo: { b: 4.5, a: '2' } }) });
   assert.deepEqual(plain(t.indexByDemo), {});
-});
-
-const A1 = { id: 'A1', minutes: 10 }, A2 = { id: 'A2', minutes: 15 }, PRE = { id: 'A-pre', minutes: 0, pre: true };
-const T0 = 1_000_000;
-const running = (startedAt, elapsedBefore = 0) => ({ running: true, startedAt, elapsedBefore });
-const paused = elapsedBefore => ({ running: false, startedAt: null, elapsedBefore });
-
-test('leaveBlock: идущий таймер не встаёт при переходе, время блока уходит в факт', () => {
-  const s = { ...Runbook.defaultState(), timer: running(T0) };
-  assert.deepEqual(plain(Runbook.leaveBlock(s, A1, A2, T0 + 600_000)),
-    { elapsed: { A1: 600 }, timer: running(T0 + 600_000) });
-});
-
-test('leaveBlock: на блок, где уже был факт, таймер идёт дальше от него', () => {
-  const s = { ...Runbook.defaultState(), elapsed: { A1: 600 }, timer: running(T0, 0) };
-  assert.deepEqual(plain(Runbook.leaveBlock(s, A2, A1, T0 + 60_000)),
-    { elapsed: { A1: 600, A2: 60 }, timer: running(T0 + 60_000, 600) });
-});
-
-test('leaveBlock: пауза сохраняется — переход между блоками таймер не запускает', () => {
-  const s = { ...Runbook.defaultState(), elapsed: { A1: 300, A2: 90 }, timer: paused(300) };
-  assert.deepEqual(plain(Runbook.leaveBlock(s, A1, A2, T0)),
-    { elapsed: { A1: 300, A2: 90 }, timer: paused(90) });
-});
-
-const DEMO_A = [PRE, A1, A2];
-
-test('leaveBlock: с заставки на первый блок таймер стартует, на заставке стоит', () => {
-  const s = Runbook.defaultState();
-  assert.deepEqual(plain(Runbook.leaveBlock(s, PRE, A1, T0, DEMO_A)), { elapsed: {}, timer: running(T0) });
-  const r = { ...s, timer: running(T0) };
-  assert.deepEqual(plain(Runbook.leaveBlock(r, A1, PRE, T0 + 120_000, DEMO_A)),
-    { elapsed: { A1: 120 }, timer: paused(0) });
-});
-
-test('leaveBlock: с заставки щелчком по повестке не на первый блок — таймер стоит, факта нет', () => {
-  const s = Runbook.defaultState();
-  const r = Runbook.leaveBlock(s, PRE, A2, T0, DEMO_A);
-  assert.deepEqual(plain(r), { elapsed: {}, timer: paused(0) });
-  const back = Runbook.leaveBlock({ ...s, ...r }, A2, PRE, T0 + 120_000, DEMO_A);
-  assert.deepEqual(plain(back), { elapsed: {}, timer: paused(0) });
-});
-
-test('leaveBlock: 2 → 1 через заставку другого демо паузу не снимает', () => {
-  const A6 = { id: 'A6', minutes: 12 }, BPRE = { id: 'B-pre', minutes: 0, pre: true }, B1 = { id: 'B1', minutes: 5 };
-  const s = { ...Runbook.defaultState(), elapsed: { A6: 300 }, timer: paused(300) };
-  const onB = { ...s, ...Runbook.leaveBlock(s, A6, BPRE, T0, [PRE, A1, A6]) };
-  assert.deepEqual(plain(Runbook.leaveBlock(onB, BPRE, A6, T0 + 5_000, [BPRE, B1])),
-    { elapsed: { A6: 300 }, timer: paused(300) });
-});
-
-test('leaveBlock: блок, пролистанный быстрее SKIP_SEC, факта не получает и в темп не идёт', () => {
-  const s = { ...Runbook.defaultState(), timer: running(T0) };
-  const r = Runbook.leaveBlock(s, A1, A2, T0 + (Runbook.SKIP_SEC - 1) * 1000);
-  assert.deepEqual(plain(r.elapsed), {});
-  assert.equal(Runbook.pace([A1, A2], 1, r.elapsed, 0).plan, 0);
-  const stale = { ...s, elapsed: { A1: 5 }, timer: paused(5) };
-  assert.deepEqual(plain(Runbook.leaveBlock(stale, A1, A2, T0).elapsed), {});
 });
 
 test('typo: цепочка коротких слов держится вместе', () => {

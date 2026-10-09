@@ -7,7 +7,6 @@
   const COPYABLE = new Set(['shell', 'git', 'url', 'prompt']);
   const PROMPT_INTRO = /промпт[а-яё]* из следующ/i;
   const SHORT_MARK = /^\[8\]\s*/;
-  const SKIP_SEC = 30; // блок, пролистанный быстрее, считается пропущенным: факта нет, в темп не идёт
   const FLOW_MIN = 3, FLOW_MAX = 5, FLOW_LABEL_MAX = 24;
 
   function clampIndex(i, len) {
@@ -16,17 +15,13 @@
   }
 
   function defaultState() {
-    return {
-      demo: 'a', index: 0,
-      timer: { running: false, startedAt: null, elapsedBefore: 0 },
-      elapsed: {}, steps: {}, short: false, light: false, indexByDemo: {},
-    };
+    return { demo: 'a', index: 0, steps: {}, short: false, light: false, indexByDemo: {} };
   }
 
   const pick = (obj, ok) =>
     Object.fromEntries(Object.entries(obj && typeof obj === 'object' ? obj : {}).filter(([, v]) => ok(v)));
 
-  // Хранилище — внешние данные: проверяем каждый тип, лишние поля старых версий отбрасываем.
+  // Хранилище — внешние данные: проверяем каждый тип, лишние поля старых версий (timer, elapsed) отбрасываем.
   function loadState(storage) {
     const d = defaultState();
     try {
@@ -34,17 +29,9 @@
       if (!raw) return d;
       const s = JSON.parse(raw);
       if (!s || typeof s !== 'object') return d;
-      const t = s.timer || {};
-      const running = t.running === true && Number.isFinite(t.startedAt);
       return {
         demo: s.demo === 'b' ? 'b' : 'a',
         index: Number.isInteger(s.index) ? s.index : d.index,
-        timer: {
-          running,
-          startedAt: running ? t.startedAt : null,
-          elapsedBefore: Number.isFinite(t.elapsedBefore) ? t.elapsedBefore : 0,
-        },
-        elapsed: pick(s.elapsed, Number.isFinite),
         steps: pick(s.steps, v => Number.isInteger(v) && v >= 0),
         short: s.short === true,
         light: s.light === true,
@@ -75,31 +62,6 @@
   async function copyText(text, clipboard) {
     if (!clipboard || typeof clipboard.writeText !== 'function') return false;
     try { await clipboard.writeText(text); return true; } catch (_) { return false; }
-  }
-
-  function fmt(sec) {
-    const s = Math.abs(Math.round(sec));
-    const sign = sec < 0 && s > 0 ? '-' : '';
-    const m = Math.floor(s / 60), r = s % 60;
-    return `${sign}${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
-  }
-  function elapsedNow(timer, now) {
-    return timer.elapsedBefore + (timer.running && timer.startedAt != null ? (now - timer.startedAt) / 1000 : 0);
-  }
-  function remaining(plannedMin, elapsedSec) { return plannedMin * 60 - elapsedSec; }
-
-  // Переход с блока from на блок to: время from уходит в факт (меньше SKIP_SEC — блок пролистали, факта нет).
-  // Между блоками идущий таймер идёт дальше, переход на заставку его останавливает, T — пауза / старт. Сам стартует только
-  // с заставки на первый блок её демо (blocks — блоки демо, с которого уходим); щелчок по повестке
-  // с заставки и возврат 1/2 через заставку его не трогают.
-  function leaveBlock(state, from, to, now, blocks) {
-    const sec = Math.round(elapsedNow(state.timer, now));
-    const rest = Object.fromEntries(Object.entries(state.elapsed).filter(([k]) => k !== from.id));
-    const elapsed = sec >= SKIP_SEC ? { ...rest, [from.id]: sec } : rest;
-    const startsTalk = Boolean(from.pre) && to.id === blocks.find(b => !b.pre)?.id;
-    const running = !to.pre && (state.timer.running || startsTalk);
-    const elapsedBefore = elapsed[to.id] || 0;
-    return { elapsed, timer: { running, startedAt: running ? now : null, elapsedBefore } };
   }
 
   // Fullscreen API возвращает промис, который отклоняется (нет жеста, iframe, запрет) — глотаем.
@@ -181,27 +143,12 @@
 
   const stepOf = (state, blockId, len) => clampIndex(state.steps[blockId] ?? 0, len);
 
-  // Темп к текущему моменту: только блоки, по которым есть факт, плюс текущий блок
-  // (его план не больше заложенных минут, перерасход идёт в отставание).
-  function pace(blocks, index, elapsed, liveSec) {
-    const timed = blocks.slice(0, index).filter(b => !b.pre && (elapsed[b.id] || 0) > 0);
-    const cur = blocks[index];
-    const live = cur && !cur.pre ? liveSec : 0;
-    const plan = timed.reduce((s, b) => s + b.minutes * 60, 0) + (cur && !cur.pre ? Math.min(liveSec, cur.minutes * 60) : 0);
-    const fact = timed.reduce((s, b) => s + elapsed[b.id], 0) + live;
-    return { plan, fact, delta: fact - plan };
-  }
-
-  function agenda(blocks, index, elapsed) {
-    return blocks.map((b, i) => {
-      const fact = elapsed[b.id] > 0 ? elapsed[b.id] : null;
-      return {
-        id: b.id, title: b.title, minutes: b.minutes,
-        pre: Boolean(b.pre), optional: Boolean(b.optional), exit: b.exit || null,
-        state: i < index ? 'done' : i === index ? 'cur' : 'todo',
-        fact, over: fact != null && !b.pre ? fact - b.minutes * 60 : null,
-      };
-    });
+  function agenda(blocks, index) {
+    return blocks.map((b, i) => ({
+      id: b.id, title: b.title, minutes: b.minutes,
+      pre: Boolean(b.pre), optional: Boolean(b.optional), exit: b.exit || null,
+      state: i < index ? 'done' : i === index ? 'cur' : 'todo',
+    }));
   }
 
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -209,7 +156,6 @@
     return {
       full: prev.demo !== next.demo || prev.index !== next.index || prev.light !== next.light,
       steps: !same(prev.steps, next.steps) || prev.short !== next.short,
-      timer: !same(prev.timer, next.timer) || !same(prev.elapsed, next.elapsed),
     };
   }
 
@@ -217,10 +163,10 @@
   const viewOf = search => (/(?:^|[?&])view=console(?:&|$)/.test(String(search)) ? 'console' : 'stage');
 
   globalThis.Runbook = {
-    STORAGE_KEY, LEAD_MAX, STAGE_FONT_MIN_CQW, KIND_LABELS, SKIP_SEC, FLOW_LABEL_MAX,
+    STORAGE_KEY, LEAD_MAX, STAGE_FONT_MIN_CQW, KIND_LABELS, FLOW_LABEL_MAX,
     clampIndex, defaultState, loadState, saveState, shouldHandleKey, totals,
-    fmt, elapsedNow, remaining, leaveBlock, toggleFullscreen, copyText,
+    toggleFullscreen, copyText,
     actionLabel, isCopyable, esc, typo, splitLead, classifyActions, hasShort,
-    nextStep, stepOf, pace, agenda, syncChanges, viewOf, flowOf,
+    nextStep, stepOf, agenda, syncChanges, viewOf, flowOf,
   };
 })();

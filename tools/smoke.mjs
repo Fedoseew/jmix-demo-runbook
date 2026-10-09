@@ -4,7 +4,6 @@
 import { fileURLToPath } from 'node:url';
 import { launch, toUrl, watch } from './browser.mjs';
 
-const STORAGE_KEY = 'jmix-runbook/v1';
 const BLOCK = 'A4';
 const STEPS_FORWARD = 3;
 const SYNC_MS = 300;
@@ -37,11 +36,8 @@ try {
   check(`console jumps to ${BLOCK}`, (await title(cons)).startsWith(BLOCK), await title(cons));
   check(`stage follows to ${BLOCK}`, (await title(stage)).startsWith(BLOCK), await title(stage));
 
-  await cons.keyboard.press('KeyT');
   for (let i = 0; i < STEPS_FORWARD; i++) await cons.keyboard.press('KeyJ');
   await stage.waitForTimeout(SYNC_MS);
-  const saved = await cons.evaluate(k => JSON.parse(localStorage.getItem(k)), STORAGE_KEY);
-  check('T starts the timer', saved?.timer?.running === true);
   const activeStep = () => cons.locator('.steps .step.active').getAttribute('data-step');
   check(`J×${STEPS_FORWARD} moves the console step`, await activeStep() === String(STEPS_FORWARD), `step ${await activeStep()}`);
 
@@ -53,10 +49,8 @@ try {
   await Promise.all([stage.reload(), cons.reload()]);
   await cons.waitForSelector('.console');
   await stage.waitForSelector('.dock');
-  const after = await cons.evaluate(k => JSON.parse(localStorage.getItem(k)), STORAGE_KEY);
   check('reload keeps the block', (await title(cons)).startsWith(BLOCK) && (await title(stage)).startsWith(BLOCK));
   check('reload keeps the step', await activeStep() === String(STEPS_FORWARD) && (await dockStep()).startsWith(want));
-  check('reload keeps the timer running', after?.timer?.running === true);
   check('no page errors or external requests', problems.length === 0, problems.join('; '));
 } catch (e) {
   check('smoke run', false, e.message.split('\n')[0]);

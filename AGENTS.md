@@ -13,7 +13,7 @@ An offline presenter runbook for two live Jmix demos: A "AI Ã— Jmix" (73 min cor
 | `index.html` | markup, all CSS (palette tokens in `:root`), SVG sprite (logo, step icons, `#qr-repo`), `?` key reference (`<dialog id="keys">`), meta and Open Graph tags |
 | `content.js` | `globalThis.DEMOS`: both demos' blocks (slides, notes, actions) |
 | `core.js` | `globalThis.Runbook`: pure logic without the DOM, tested in Node |
-| `app.js` | DOM: stage, console, dock, keys, copy, timer painting, two-window sync |
+| `app.js` | DOM: stage, console, dock, keys, copy, two-window sync |
 | `demo` | bash entry point for the demo infrastructure (not a page file): `setup`, `check`, `up`, `prepare`, `reset`, `down`, `status`, `logs`; `./demo help` |
 | `test/*.test.mjs` | `node --test`, no dependencies; `test/load.mjs` runs project files in `node:vm` |
 | `tools/` | `shot.mjs` screenshots, `smoke.mjs` two-window smoke test, `capture-fallbacks.mjs` fallback screenshots from the running demo stand, `browser.mjs` shared Playwright launcher, `StandKeyCheck.java` (run by `./demo check`: asks the stand over JMX 9191 whether its keys are set, prints only `set` or `missing`, never the value) |
@@ -47,7 +47,7 @@ The tools resolve Playwright from `PLAYWRIGHT_MODULE` (a module path such as `/â
 - **Guard browser APIs:** `localStorage`, `sessionStorage`, clipboard, fullscreen and `window.open` go through `try/catch` or a checked result.
 - **No `console.log`** in page code (`app.js`, `core.js`, `content.js`). The CLI tools in `tools/` may print.
 - **Immutable state:** every change builds a new state object; `Runbook.loadState` validates every field read from storage.
-- **The audience sees the stage and the dock:** no notes, overrun or debug messages there.
+- **The audience sees the stage and the dock:** no notes or debug messages there.
 - **`demo` script:** runs on the macOS bash 3.2 (no associative arrays, `mapfile` or `${x,,}`), stays `shellcheck demo`-clean, and checks `SPRING_AI_OPENAI_APIKEY` only for presence: never print, log or write the key. One stand, `aura-light` on 8091, in the `~/IdeaProjects/jmix-crm-stand` worktree; `jmix-crm` itself stays on `main`.
 
 ## Content conventions
