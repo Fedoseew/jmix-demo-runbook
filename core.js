@@ -151,6 +151,10 @@
     }));
   }
 
+  // «Сбросить репетицию» (консоль, pre-flight): блоки после прогона открываются с первого шага, демо — с pre-flight.
+  // Демо, блок и тема остаются: кнопка нажата на pre-flight, тему выбрали под проектор.
+  const resetRehearsal = state => ({ ...state, steps: {}, short: false, indexByDemo: {} });
+
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   function syncChanges(prev, next) {
     return {
@@ -167,6 +171,6 @@
     clampIndex, defaultState, loadState, saveState, shouldHandleKey, totals,
     toggleFullscreen, copyText,
     actionLabel, isCopyable, esc, typo, splitLead, classifyActions, hasShort,
-    nextStep, stepOf, agenda, syncChanges, viewOf, flowOf,
+    nextStep, stepOf, agenda, syncChanges, viewOf, flowOf, resetRehearsal,
   };
 })();

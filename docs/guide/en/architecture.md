@@ -18,7 +18,7 @@ A static page with no build step and no dependencies: three scripts and `index.h
 |---|---|
 | `index.html` | markup, all CSS (palette tokens in `:root`), the SVG sprite (logo, step icons, repository QR), the `?` reference (`<dialog id="keys">`), meta and Open Graph tags. Loads `content.js`, `core.js`, `app.js` in that order by relative paths |
 | `content.js` | the data for both demos, `globalThis.DEMOS` ([schema](content.md#the-demos-schema)) |
-| `core.js` | pure logic without the DOM, `globalThis.Runbook`: loading and validating state, the agenda, step classification, note leads, typography, `flowOf`. Tested in Node |
+| `core.js` | pure logic without the DOM, `globalThis.Runbook`: loading and validating state, the reset after a rehearsal (`resetRehearsal`), the agenda, step classification, note leads, typography, `flowOf`. Tested in Node |
 | `app.js` | the DOM: stage, console, mirror dock, keys, copying, window sync |
 | `demo` | bash script for the demo infrastructure, not part of the page: the stand, the crm-from-db database, the pre-flight (`./demo help`, [what runs where](demos.md#what-to-prepare)) |
 | `test/` | `node --test`: `content`, `core`, `html`, `app`, `demo-script`, plus the `load.mjs` loader |
@@ -57,6 +57,8 @@ If `content.js` or `core.js` fails to load (a typo after an edit, an old browser
 | `light` | light stage |
 
 `Runbook.loadState` checks the type of every field, drops unknown ones, and reads state saved by older versions: without `indexByDemo`, or with the fields of the removed timer (`timer` and `elapsed` are dropped). State is never mutated: each change builds a new object and writes it whole (`saveState`). Storage access is wrapped in `try/catch`.
+
+`Runbook.resetRehearsal` backs the «Сбросить репетицию» (reset rehearsal) button under the pre-flight checklist in the console (a second click within 3 s): a new state without steps, the short version and `indexByDemo`, with the same demo, block and theme. The other window gets a `storage` event and repaints its steps.
 
 **Per window:**
 
@@ -122,9 +124,9 @@ node --test
 ```
 
 - `test/load.mjs` runs project files in `node:vm` with stub globals, so `content.js` and `core.js` are tested without a browser.
-- `core.test.mjs`: logic (state, including state saved by an older version with the timer, steps, the agenda, sync, typography, `flowOf`).
+- `core.test.mjs`: logic (state, including state saved by an older version with the timer, the rehearsal reset, steps, the agenda, sync, typography, `flowOf`).
 - `content.test.mjs`: content rules (see [content.md](content.md#checking-your-changes)).
-- `html.test.mjs`: markup and CSS (external resources, script order, contrast, font sizes, the key reference).
+- `html.test.mjs`: markup and CSS (external resources, script order, contrast, font sizes, the key reference both ways: every handled key is listed and every listed key is handled, the reset rehearsal button).
 - `app.test.mjs`: `app.js` without `content.js` or `core.js` reports the reason instead of crashing.
 - `demo-script.test.mjs`: `bash -n demo`, `./demo help` lists every subcommand, an unknown one exits with code 2.
 

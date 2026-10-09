@@ -19,7 +19,7 @@ An offline presenter runbook for two live Jmix demos: A "AI × Jmix" (73 min cor
 | `tools/` | `shot.mjs` screenshots, `smoke.mjs` two-window smoke test, `capture-fallbacks.mjs` fallback screenshots from the running demo stand, `browser.mjs` shared Playwright launcher, `StandKeyCheck.java` (run by `./demo check`: asks the stand over JMX 9191 whether its keys are set, prints only `set` or `missing`, never the value) |
 | `assets/` | rehearsal fallback screenshots (git-ignored); `assets/README.md` lists every file `content.js` opens and how to capture it |
 | `docs/guide/{ru,en}/` | user guides: `usage`, `demos`, `content`, `architecture` |
-| `docs/superpowers/` | spec and plans. History: do not move or rewrite. Spec §10–11 is the UI contract |
+| `docs/superpowers/` | spec and plans. History: do not move or rewrite. Spec §10–12 is the UI contract; §12 removed the block timer (2026-10-09) and overrides the timer parts of §10–11 |
 | `docs/open-questions.md` | things to verify at rehearsal |
 | `.agents/skills/` | agent skills, linked from `.claude/skills/` |
 
@@ -43,7 +43,7 @@ The tools resolve Playwright from `PLAYWRIGHT_MODULE` (a module path such as `/�
 - **Palette tokens only.** Jmix colours `#17124B`, `#FDB42B`, `#FC1264`, `#41B883`, text `#DBDDE1`, defined once in `:root`; reuse tokens instead of new literals.
 - **Contrast** of text at least 4.5:1 on console and light-dock backgrounds (tested).
 - **Font floors:** stage bullets at least 28px at 1280 wide (`2.19cqw`); console at least 14px; dock and `?` reference at least 18px (the audience sees them).
-- **Keys by `event.code`**, never `event.key`, so any layout works. Every key `app.js` handles must appear in the `?` dialog (tested). Ignore auto-repeat and modifier combos.
+- **Keys by `event.code`**, never `event.key`, so any layout works. The `?` dialog lists exactly the keys `app.js` handles (tested both ways; `Esc` belongs to the dialog itself). Ignore auto-repeat and modifier combos.
 - **Guard browser APIs:** `localStorage`, `sessionStorage`, clipboard, fullscreen and `window.open` go through `try/catch` or a checked result.
 - **No `console.log`** in page code (`app.js`, `core.js`, `content.js`). The CLI tools in `tools/` may print.
 - **Immutable state:** every change builds a new state object; `Runbook.loadState` validates every field read from storage.
@@ -56,7 +56,7 @@ Full reference: `docs/guide/en/content.md`.
 
 - Block: `id`, `title`, `minutes`, optional `optional`, `pre`, `exit`, `flow`, plus `slide`, `notes`, `actions`. Pre-flight is the first block of each demo, with `minutes: 0`.
 - `slide`: 3–6 bullets (4–12 checklist items for pre-flight), each at most 90 characters.
-- `flow`: optional, 3–5 labels of at most 24 characters, drawn as a process strip under the title rule (used on A4, A5, A6, B2). Bullets must still fit at 28px at 1280×720.
+- `flow`: optional, 3–5 labels of at most 24 characters, drawn as a process strip under the title rule (used on A4, A5, A6, B2, B5). Bullets must still fit at 28px at 1280×720.
 - `notes`: each paragraph needs a lead for the console: the first sentence, or text up to ":", " — " or ")", at most 56 characters.
 - `actions[].kind`: `shell`, `git`, `url`, `studio`, `say`.
 - `[8]` at the start of an action's text marks the short version (`S`).

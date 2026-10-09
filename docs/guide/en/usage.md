@@ -145,7 +145,7 @@ Instead of `./demo up a` you can start the stand in IntelliJ IDEA: project `~/Id
 Before the talk:
 
 1. `./demo check` with no FAIL, then the manual items of the pre-flight checklist.
-2. **Clear the rehearsal state.** The block, the step of each block, the short version and the theme live in `localStorage` and survive a browser restart. Before the talk, delete the `jmix-runbook/v1` key (DevTools → Application → Local Storage) or run `localStorage.removeItem('jmix-runbook/v1')` in the DevTools console.
+2. **Clear the rehearsal state.** The step of each block, the short version and the last block of each demo live in `localStorage` and survive a browser restart: without a reset, A4 opens halfway through. In the console on pre-flight, press «Сбросить репетицию» (reset rehearsal) under the checklist, then press it again within 3 s; meanwhile the button reads «Нажмите ещё раз» (press again). From the keyboard: `Tab` to the button, `Enter` twice. Blocks then open at their first step and the other demo at its pre-flight; the stage theme and the checklist ticks stay, and the stage window updates by itself.
 3. Rehearse once in mirror mode on the real projector: on blocks with long Studio steps (A5, A6, B2) the dock takes up to 30% of the screen.
 4. Close the items in [docs/open-questions.md](../../open-questions.md) (partly in Russian) that apply to your venue.
 

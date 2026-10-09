@@ -197,6 +197,17 @@ test('syncChanges различает смену блока и шага', () => {
   assert.deepEqual(plain(Runbook.syncChanges(base, { ...base })), { full: false, steps: false });
 });
 
+test('resetRehearsal: шаги, короткая версия и позиции демо — с начала; демо, блок и тема остаются; вход не меняется', () => {
+  const before = { demo: 'b', index: 0, steps: { A4: 3, B2: 5 }, short: true, light: true, indexByDemo: { a: 6, b: 0 } };
+  const snapshot = JSON.stringify(before);
+  const after = Runbook.resetRehearsal(before);
+  assert.deepEqual(plain(after), { demo: 'b', index: 0, steps: {}, short: false, light: true, indexByDemo: {} });
+  assert.notEqual(after, before);
+  assert.equal(JSON.stringify(before), snapshot);
+  assert.deepEqual(plain(Runbook.syncChanges(before, after)), { full: false, steps: true });
+  assert.equal(Runbook.resetRehearsal({ ...before, light: false }).light, false);
+});
+
 test('viewOf: консоль только по ?view=console', () => {
   assert.equal(Runbook.viewOf('?view=console'), 'console');
   assert.equal(Runbook.viewOf('?demo=b&view=console'), 'console');

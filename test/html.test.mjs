@@ -133,22 +133,40 @@ test('подсказка клавиш сцены — в строке шапки,
   assert.match(rule, /top:\s*3\.3cqw/, 'подсказка — в строке счётчика и логотипа');
 });
 
-// U10: в зеркале консоли нет, а легенда панели и подсказка сцены показывают не все клавиши.
-test('справка «?» перечисляет каждую клавишу, которую читает app.js (U10)', () => {
-  const app = readText('app.js');
-  const codes = new Set([...app.matchAll(/\b(Key[A-Z]|Digit\d|Arrow(?:Left|Right)|Space|Slash)\b/g)].map(m => m[1]));
-  assert.ok(codes.has('Slash'), 'app.js не читает Slash (?)');
-  const label = c => ({ ArrowLeft: '←', ArrowRight: '→', Space: 'Space', Slash: '?' }[c] ?? c.replace(/^(Key|Digit)/, ''));
-  const dialog = html.match(/<dialog id="keys"[\s\S]*?<\/dialog>/)?.[0];
-  assert.ok(dialog, 'нет <dialog id="keys">');
-  const missing = [...codes].map(label).filter(k => !dialog.includes(`<kbd>${k}</kbd>`));
-  assert.deepEqual(missing, []);
-  assert.match(app, /st-hint[^\n]*<kbd>\?<\/kbd>/, 'подсказка сцены не называет ?');
-  assert.match(app, /d-legend[^\n]*<kbd>\?<\/kbd>/, 'легенда панели не называет ?');
-});
-
 const appSrc = readText('app.js');
 const fnSrc = name => appSrc.match(new RegExp(`function ${name}\\([\\s\\S]*?\\n  \\}`))?.[0] ?? '';
+
+// U10: в зеркале консоли нет, а легенда панели и подсказка сцены показывают не все клавиши.
+// В обе стороны (spec §12): клавиша без строки в справке и строка справки без обработчика (былые T и R) — ошибка.
+test('справка «?» и обработчики app.js называют одни и те же клавиши (U10, spec §12)', () => {
+  const handlers = (appSrc.match(/const STEP_KEYS = \{[\s\S]*?\n  \};/)?.[0] ?? '') + fnSrc('onKey');
+  const codes = new Set([...handlers.matchAll(/\b(Key[A-Z]|Digit\d|Arrow(?:Left|Right)|Space|Slash)\b/g)].map(m => m[1]));
+  assert.ok(codes.has('Slash') && codes.has('KeyJ'), 'не нашёл STEP_KEYS и onKey в app.js');
+  const label = c => ({ ArrowLeft: '←', ArrowRight: '→', Space: 'Space', Slash: '?' }[c] ?? c.replace(/^(Key|Digit)/, ''));
+  const handled = new Set([...codes].map(label));
+  const dialog = html.match(/<dialog id="keys"[\s\S]*?<\/dialog>/)?.[0];
+  assert.ok(dialog, 'нет <dialog id="keys">');
+  const NATIVE = new Set(['Esc']); // Esc закрывает <dialog> сам браузер
+  const shown = new Set([...dialog.matchAll(/<kbd>([^<]+)<\/kbd>/g)].map(m => m[1]));
+  assert.deepEqual([...handled].filter(k => !shown.has(k)), [], 'app.js обрабатывает, а в справке нет');
+  assert.deepEqual([...shown].filter(k => !handled.has(k) && !NATIVE.has(k)), [], 'в справке есть, а app.js не обрабатывает');
+  assert.match(appSrc, /st-hint[^\n]*<kbd>\?<\/kbd>/, 'подсказка сцены не называет ?');
+  assert.match(appSrc, /d-legend[^\n]*<kbd>\?<\/kbd>/, 'легенда панели не называет ?');
+});
+
+test('«Сбросить репетицию»: только под чек-листом pre-flight, второй щелчок за 3 с, затем resetRehearsal, запись и сообщение (spec §12)', () => {
+  assert.match(fnSrc('notesHTML'), /const checklist = b\.pre\s*\?[^:]*pf-list[\s\S]*?\$\{RESET_HTML\}`\s*:\s*''/);
+  assert.match(appSrc, /const RESET_CONFIRM_MS = 3000;/);
+  assert.match(appSrc, /<button type="button" class="ghost" data-reset[^>]*>\$\{RESET_LABEL\}<\/button>/);
+  const src = fnSrc('resetClicked');
+  assert.match(src, /classList\.contains\('armed'\)[\s\S]*setTimeout\(\(\) => armReset\(btn, false\), RESET_CONFIRM_MS\)[\s\S]*return;/);
+  assert.match(src, /state = Runbook\.resetRehearsal\(state\);\s*commit\(\);/);
+  assert.match(src, /announce\(/);
+  assert.match(fnSrc('onClick'), /\[data-reset\][\s\S]*d\.reset !== undefined\) resetClicked\(t\)/);
+  assert.match(fnSrc('onKey'), /if \(e\.repeat\) \{ if \(e\.target\.closest\?\.\('\[data-reset\]'\)\) e\.preventDefault\(\); return; \}/, 'зажатый Enter на кнопке не должен щёлкать дважды');
+  assert.match(cssRule('.ghost.armed') ?? '', /color:\s*var\(--pink-text\)/, 'взведённая кнопка — токеном с проверенным контрастом');
+  assert.ok(html.indexOf('.pf-reset') > html.indexOf('КОНСОЛЬ ДОКЛАДЧИКА'), '.pf-reset — в разделе консоли: под проверкой ≥ 14px');
+});
 
 test('сегмент «сейчас» на полосе сцены — сплошной жёлтый, на светлой сцене с контуром (spec §12)', () => {
   assert.match(cssRule('.st-seg.cur') ?? '', /background:\s*var\(--yellow\)/);

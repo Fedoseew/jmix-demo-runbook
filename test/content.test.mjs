@@ -141,8 +141,8 @@ test('B1 без jmix new --help, B3 не строит роль вживую', ()
   assert.ok(!B.B3.actions.some(a => /New \(\+\) → Resource Role/.test(a.text)));
 });
 
-test('полоса процесса: у A4, A5, A6 и B2, 3–5 подписей, каждая ≤ 24 символов', () => {
-  for (const b of [A.A4, A.A5, A.A6, B.B2]) assert.ok(b.flow, `${b.id}: нет flow`);
+test('полоса процесса: у A4, A5, A6, B2 и B5, 3–5 подписей, каждая ≤ 24 символов', () => {
+  for (const b of [A.A4, A.A5, A.A6, B.B2, B.B5]) assert.ok(b.flow, `${b.id}: нет flow`);
   for (const b of all().filter(x => x.flow !== undefined)) {
     assert.ok(Array.isArray(b.flow) && b.flow.length >= 3 && b.flow.length <= 5, `${b.id}: flow из ${b.flow.length}`);
     for (const s of b.flow) assert.ok(typeof s === 'string' && s.trim() && s.length <= 24, `${b.id}: «${s}»`);
@@ -173,6 +173,24 @@ test('A-pre: прогрев Jmix AI — вопрос A3 промптом; кат
 
 test('A3: запасной скриншот ответа Jmix AI — последнее действие блока', () => {
   assert.equal(A.A3.actions.at(-1).text, 'open ~/IdeaProjects/jmix-demo-runbook/assets/a3-jmix-ai.png');
+});
+
+// Банк ответов: в консоли лид абзаца — сам вопрос, свёрнутые абзацы работают как оглавление.
+test('A7, B0 и B5: частые вопросы — отдельные абзацы, лид заканчивается «?»', () => {
+  for (const [b, min] of [[A.A7, 8], [B.B0, 6], [B.B5, 4]]) {
+    const qs = b.notes.map(t => Runbook.splitLead(t)[0]).filter(l => l.endsWith('?'));
+    assert.ok(qs.length >= min, `${b.id}: вопросов ${qs.length}, нужно ≥ ${min}`);
+  }
+});
+
+// Таймера блока нет: в заметках порядок шагов, а не минуты от начала блока.
+test('демо B запускает одну run-конфигурацию «crm-from-db app»; заметки не считают минуты от начала блока', () => {
+  const src = readText('content.js');
+  assert.doesNotMatch(src, /Crm-from-db Jmix Application/);
+  for (const id of ['B1', 'B2', 'B3', 'B4']) assert.ok(B[id].actions.some(a => a.text.includes("crm-from-db app")), id);
+  for (const b of all()) for (const t of b.notes) {
+    assert.doesNotMatch(t, /\d+-й минуте|\b\d{1,2}:\d\d–\d{1,2}:\d\d|минуты \d+–\d+\./, `${b.id}: ${t.slice(0, 60)}`);
+  }
 });
 
 test('A5 называется так же, как в карте A0', () => {

@@ -21,6 +21,11 @@
   const NO_CONTENT = 'content.js не загрузился — откройте index.html из папки runbook';
   const NO_CORE = 'core.js не загрузился — откройте index.html из папки runbook в свежем Chrome, Edge, Firefox или Safari';
   const NO_STORAGE = 'localStorage недоступен — второе окно не синхронизируется, F5 вернёт к началу';
+  const RESET_CONFIRM_MS = 3000; // «Сбросить репетицию» срабатывает на второй щелчок за это время
+  const RESET_MIN_GAP_MS = 400;  // второй щелчок раньше — это двойной щелчок, а не подтверждение
+  const RESET_LABEL = 'Сбросить репетицию';
+  const RESET_HTML = `<div class="pf-reset"><button type="button" class="ghost" data-reset aria-describedby="pf-reset-what">${RESET_LABEL}</button>
+    <span id="pf-reset-what">шаги блоков, 8′ и позиции демо — с начала; тема остаётся</span></div>`;
 
   // ---------------- состояние и хелперы ----------------
   let storage = null;
@@ -30,6 +35,8 @@
   let clockTick = null;
   let statusTimer = null;
   let hintTimer = null;
+  let resetTimer = null;
+  let resetArmedAt = 0;
   let checks = {};        // отметки чек-листа по id блока: живут в окне до F5 (spec §10.5 — не сохраняем)
 
   const $ = id => document.getElementById(id);
@@ -202,7 +209,7 @@
 
   function notesHTML(b) {
     const checklist = b.pre
-      ? `<ul class="pf-list">${b.slide.map((t, i) => `<li><label><input type="checkbox"${checks[b.id]?.[i] ? ' checked' : ''}><span>${Runbook.esc(t)}</span></label></li>`).join('')}</ul>`
+      ? `<ul class="pf-list">${b.slide.map((t, i) => `<li><label><input type="checkbox"${checks[b.id]?.[i] ? ' checked' : ''}><span>${Runbook.esc(t)}</span></label></li>`).join('')}</ul>${RESET_HTML}`
       : '';
     const notes = b.notes.map((t, i) => {
       const [lead, rest] = Runbook.splitLead(t);
@@ -304,6 +311,29 @@
     state = { ...state, short: !state.short };
     commit();
     paintSteps(true);
+  }
+
+  // «Сбросить репетицию»: первый щелчок взводит кнопку на RESET_CONFIRM_MS, второй сбрасывает. Взведённость живёт
+  // в самой кнопке — перерисовка (переход, второе окно) её снимает. Без render(): фокус клавиатуры остаётся на кнопке.
+  function armReset(btn, on) {
+    btn.classList.toggle('armed', on);
+    btn.textContent = on ? 'Нажмите ещё раз' : RESET_LABEL;
+  }
+
+  function resetClicked(btn) {
+    if (btn.classList.contains('armed') && Date.now() - resetArmedAt < RESET_MIN_GAP_MS) return; // двойной щелчок — не подтверждение
+    clearTimeout(resetTimer);
+    if (!btn.classList.contains('armed')) {
+      armReset(btn, true);
+      resetArmedAt = Date.now();
+      resetTimer = setTimeout(() => armReset(btn, false), RESET_CONFIRM_MS);
+      return;
+    }
+    armReset(btn, false);
+    state = Runbook.resetRehearsal(state);
+    commit();
+    paintSteps(true);
+    announce('Репетиция сброшена: шаги, короткая версия и позиции демо — с начала');
   }
 
   // ---------------- копирование ----------------
@@ -521,7 +551,9 @@
   const viewKeys = () => (view === 'console' || dockOpen ? STEP_KEYS : {});
 
   function onKey(e) {
-    if (e.repeat) return; // зажатая → пролетала бы блоки
+    // зажатая → пролетала бы блоки; на фокусной «Сбросить репетицию» повтор Enter/Space браузер превратил бы
+    // в щелчки — второй сбросил бы без подтверждения, поэтому повтор там гасим
+    if (e.repeat) { if (e.target.closest?.('[data-reset]')) e.preventDefault(); return; }
     if (!Runbook.shouldHandleKey(e) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.code === 'Space' && e.target.closest?.('button, summary, input, a')) return;
     const action = viewKeys()[e.code];
@@ -564,7 +596,7 @@
     // Заметка (summary) и ссылка в фокусе после щелчка мышью тоже перехватили бы Space; blur() не отменяет ни раскрытие заметки, ни переход по ссылке.
     if (e.detail > 0) e.target.closest('summary, a')?.blur();
     if (e.target === $('keys')) { e.target.close(); return; } // щелчок по фону справки: содержимое — в .k-box
-    const t = e.target.closest('[data-go],[data-demo],[data-copy],[data-expand],[data-short],[data-step]');
+    const t = e.target.closest('[data-go],[data-demo],[data-copy],[data-expand],[data-short],[data-step],[data-reset]');
     if (!t || e.target.closest('a')) return;
     const d = t.dataset;
     if (d.go !== undefined) go(Number(d.go));
@@ -572,6 +604,7 @@
     else if (d.copy !== undefined) copyClicked(...d.copy.split(':').map(Number));
     else if (d.short !== undefined) toggleShort();
     else if (d.step !== undefined) setStep(Number(d.step));
+    else if (d.reset !== undefined) resetClicked(t);
     else toggleNotes(t);
     // Кнопка в фокусе после щелчка мышью перехватила бы Space (он не для кнопок) и нажала бы её снова.
     if (e.detail > 0) t.blur();
