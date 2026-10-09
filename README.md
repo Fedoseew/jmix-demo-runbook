@@ -50,12 +50,13 @@ open jmix-demo-runbook/index.html   # Windows: start, Linux: xdg-open
 ./demo down      # остановить стенд и базу
 ```
 
-Или из IntelliJ IDEA: проект `~/IdeaProjects/jmix-crm-stand`, run-конфигурация «Stand aura-light (OpenAI)» вместо `./demo up a`; проект `crm-from-db`, «crm-from-db database» и «crm-from-db app». Нужны JDK 21, Docker (демо B) и ключ `SPRING_AI_OPENAI_APIKEY` в окружении. Все команды — `./demo help` и [Демо A и B → Что подготовить](docs/guide/ru/demos.md#что-подготовить).
+Или из IntelliJ IDEA: проект `~/IdeaProjects/jmix-crm-stand`, run-конфигурация «Stand aura-light (OpenAI)» вместо `./demo up a`; проект `crm-from-db`, «crm-from-db database» и «crm-from-db app». Нужны JDK 21, Docker (демо B) и ключ `SPRING_AI_OPENAI_APIKEY` в окружении. Все команды — `./demo help` и [Демо A и B → Что подготовить](docs/guide/ru/demos.md#что-подготовить); по шагам от первой настройки до дня показа — [Подготовка и репетиция](docs/guide/ru/rehearsal.md).
 
 ## Документация
 
 | Руководство | О чём |
 |---|---|
+| [Подготовка и репетиция](docs/guide/ru/rehearsal.md) | по шагам: настройка, репетиции A и B, что проверить руками, накануне и в день показа |
 | [Как вести демо](docs/guide/ru/usage.md) | второй экран или зеркало, все клавиши, шаги и короткая версия, pre-flight, если что-то не так |
 | [Демо A и B](docs/guide/ru/demos.md) | аудитория, цели, тайминг с опциональными блоками и точками выхода, что показывает каждый блок, что подготовить |
 | [Как править контент](docs/guide/ru/content.md) | схема `content.js`, поля блока, конвенции, тесты, свой runbook и публикация на GitHub Pages |
