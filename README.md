@@ -50,7 +50,7 @@ open jmix-demo-runbook/index.html   # Windows: start, Linux: xdg-open
 ./demo down      # остановить стенд и базу
 ```
 
-Или из IntelliJ IDEA: проект `~/IdeaProjects/jmix-crm-stand`, run-конфигурация «Stand aura-light (OpenAI)» вместо `./demo up a`; проект `crm-from-db`, «crm-from-db database» и «crm-from-db app». Нужны JDK 21, Docker (демо B) и ключ `SPRING_AI_OPENAI_APIKEY` в окружении. Все команды — `./demo help` и [Демо A и B → Что подготовить](docs/guide/ru/demos.md#что-подготовить); по шагам от первой настройки до дня показа — [Подготовка и репетиция](docs/guide/ru/rehearsal.md).
+Или из IntelliJ IDEA: проект `~/IdeaProjects/jmix-crm-stand`, run-конфигурация «Stand aura-light (OpenAI)» вместо `./demo up a`; проект `crm-from-db`, «crm-from-db app» (базу «crm-from-db database» она запускает сама), после репетиции — «crm-from-db database reset». Нужны JDK 21, Docker (демо B) и ключ `SPRING_AI_OPENAI_APIKEY` в окружении. Все команды — `./demo help` и [Демо A и B → Что подготовить](docs/guide/ru/demos.md#что-подготовить); по шагам от первой настройки до дня показа — [Подготовка и репетиция](docs/guide/ru/rehearsal.md).
 
 ## Документация
 

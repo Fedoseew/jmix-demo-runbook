@@ -50,7 +50,7 @@ The `./demo` script (bash, macOS and Linux; projects in `~/IdeaProjects`) brings
 ./demo down      # stop the stand and the database
 ```
 
-Or from IntelliJ IDEA: project `~/IdeaProjects/jmix-crm-stand`, run configuration «Stand aura-light (OpenAI)» instead of `./demo up a`; project `crm-from-db`, «crm-from-db database» and «crm-from-db app». You need JDK 21, Docker (demo B) and the key `SPRING_AI_OPENAI_APIKEY` in the environment. Every command: `./demo help` and [Demos A and B → What to prepare](docs/guide/en/demos.md#what-to-prepare); step by step from the first setup to demo day: [Preparing and rehearsing](docs/guide/en/rehearsal.md).
+Or from IntelliJ IDEA: project `~/IdeaProjects/jmix-crm-stand`, run configuration «Stand aura-light (OpenAI)» instead of `./demo up a`; project `crm-from-db`, «crm-from-db app» (it starts the database «crm-from-db database» itself), and after a rehearsal «crm-from-db database reset». You need JDK 21, Docker (demo B) and the key `SPRING_AI_OPENAI_APIKEY` in the environment. Every command: `./demo help` and [Demos A and B → What to prepare](docs/guide/en/demos.md#what-to-prepare); step by step from the first setup to demo day: [Preparing and rehearsing](docs/guide/en/rehearsal.md).
 
 ## Documentation
 

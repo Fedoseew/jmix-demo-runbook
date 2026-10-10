@@ -20,9 +20,9 @@
 
 ## 3. Репетиция демо B
 
-1. `./demo up b` — PostgreSQL на `:5434` (и стенд для тизера B4).
+1. `./demo up b` — PostgreSQL на `:5434` (и стенд для тизера B4). В IDE базу перед стартом поднимает сама «crm-from-db app».
 2. Открыть `~/IdeaProjects/crm-from-db` в IDE, пройти B1–B4 по runbook. Ветки `b/02-model` … `b/05-agent` — готовые точки отката.
-3. После прогона `./demo reset b`, затем один раз запустить «crm-from-db app» и создать пользователя `sales` / `sales`.
+3. После прогона `./demo reset b` (или в IDE «crm-from-db database reset», приложение сначала остановить), затем один раз запустить «crm-from-db app» и создать пользователя `sales` / `sales`.
 
 ## 4. Только руками
 

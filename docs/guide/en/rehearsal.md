@@ -20,9 +20,9 @@ The order of work from the first setup to demo day. What each `./demo` command d
 
 ## 3. Rehearsing demo B
 
-1. `./demo up b` — PostgreSQL on `:5434` (and the stand for the B4 teaser).
+1. `./demo up b` — PostgreSQL on `:5434` (and the stand for the B4 teaser). In the IDE, «crm-from-db app» starts the database itself.
 2. Open `~/IdeaProjects/crm-from-db` in the IDE and walk B1–B4 with the runbook. Branches `b/02-model` … `b/05-agent` are ready fallback points.
-3. After the run, `./demo reset b`, then start «crm-from-db app» once and create the user `sales` / `sales`.
+3. After the run, `./demo reset b` (or «crm-from-db database reset» in the IDE; stop the app first), then start «crm-from-db app» once and create the user `sales` / `sales`.
 
 ## 4. By hand only
 
