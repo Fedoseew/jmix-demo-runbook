@@ -42,6 +42,7 @@ REPORTS_RE='AI JPQL demo reports (imported|are present|were not imported)'
 usage() {
   cat <<'EOF'
 Usage: ./demo <command>
+       ./demo            without a command, in a terminal: a numbered menu of these commands
 
 Brings up the demo infrastructure. Projects live in ~/IdeaProjects: jmix-crm (stays on main, A1 and A2),
 jmix-crm-stand (worktree on demo/ai-app, the stand), crm-from-db (demo B).
@@ -458,18 +459,71 @@ cmd_logs() {
   esac
 }
 
-cmd=${1:-help}
-if [ $# -gt 0 ]; then shift; fi
-[ $# -le 1 ] || [ "$cmd" = reset ] || die "too many arguments: ./demo help"
-case "$cmd" in
-  setup) [ $# -eq 0 ] || die "use: ./demo setup"; cmd_setup ;;
-  check) cmd_check "${1:-all}" ;;
-  up) cmd_up "${1:-a}" ;;
-  prepare) [ $# -eq 0 ] || die "use: ./demo prepare"; cmd_prepare ;;
-  reset) cmd_reset "$@" ;;
-  down) [ $# -eq 0 ] || die "use: ./demo down"; cmd_down ;;
-  status) [ $# -eq 0 ] || die "use: ./demo status"; cmd_status ;;
-  logs) cmd_logs "${1:-}" ;;
-  help|-h|--help) usage ;;
-  *) usage >&2; exit 2 ;;
-esac
+dispatch() { # command [args]
+  local cmd=$1; shift
+  [ $# -le 1 ] || [ "$cmd" = reset ] || die "too many arguments: ./demo help"
+  case "$cmd" in
+    setup) [ $# -eq 0 ] || die "use: ./demo setup"; cmd_setup ;;
+    check) cmd_check "${1:-all}" ;;
+    up) cmd_up "${1:-a}" ;;
+    prepare) [ $# -eq 0 ] || die "use: ./demo prepare"; cmd_prepare ;;
+    reset) cmd_reset "$@" ;;
+    down) [ $# -eq 0 ] || die "use: ./demo down"; cmd_down ;;
+    status) [ $# -eq 0 ] || die "use: ./demo status"; cmd_status ;;
+    logs) cmd_logs "${1:-}" ;;
+    help|-h|--help) usage ;;
+    *) usage >&2; exit 2 ;;
+  esac
+}
+
+# The menu of ./demo without a command: "#title" lines head a group, the others are "command|what it does".
+MENU="#First time
+setup|create the stand worktree and jar, clone crm-from-db, install Playwright
+check|the pre-flight of both demos
+#Demo A
+up a|start the stand aura-light on :$PORT
+prepare|warm-up, the A4 dialogs, fallback screenshots (the stand must be up)
+check a|the pre-flight of demo A
+reset a|after a rehearsal: a fresh stand database (asks first)
+#Demo B
+up b|the crm-from-db database on :$DB_PORT and the stand
+check b|the pre-flight of demo B
+reset b|after a rehearsal: the crm-from-db database from the dump (asks first)
+#Any time
+status|what runs where
+logs jpql|the JPQL queries CRM AI sent to the database
+logs|follow the stand log (Ctrl+C: back to the menu)
+down|stop the stand and the database"
+
+cmd_menu() {
+  local cmds=() line n choice
+  while :; do
+    n=0
+    while IFS= read -r line; do
+      case "$line" in
+        "#"*) say "${line#\#}" ;;
+        *) n=$((n + 1)); cmds[n]=${line%%|*}; printf '  %2d) %-10s %s\n' "$n" "${cmds[n]}" "${line#*|}" ;;
+      esac
+    done <<<"$MENU"
+    say "   h) help  q) quit"
+    read -r -p "Number: " choice || { say ""; return 0; } # Ctrl+C here quits
+    case "$choice" in
+      q|Q) return 0 ;;
+      h|H) usage; continue ;;
+      "") continue ;;
+    esac
+    if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$n" ]; then
+      say "no item $choice"; continue
+    fi
+    say "> ./demo ${cmds[choice]}"
+    # A subshell, so that die and exit end the command, not the menu. ${cmds[...]} splits on purpose: "up a".
+    trap 'printf "\n"' INT # Ctrl+C stops the command and comes back to the menu
+    # shellcheck disable=SC2086
+    if (dispatch ${cmds[choice]}); then say "done: ./demo ${cmds[choice]}"
+    else say "failed (exit $?): ./demo ${cmds[choice]}"; fi
+    trap - INT
+    say ""
+  done
+}
+
+if [ $# -eq 0 ] && [ -t 0 ] && [ -t 1 ]; then cmd_menu; else dispatch "${@:-help}"; fi

@@ -132,6 +132,7 @@ The last block of each demo (A7, B5) tells the audience where to find the materi
 **The infrastructure** of the demos comes up with the `./demo` script in the runbook folder; what runs where and every command are in [Demos A and B → What to prepare](demos.md#what-to-prepare).
 
 ```bash
+./demo                           # a menu: the same actions by number
 ./demo setup                     # once: the jmix-crm-stand worktree, the stand jar, a clone of crm-from-db
 ./demo up a                      # the stand on :8091; ./demo up b also starts PostgreSQL on :5434 for demo B
 ./demo reset && ./demo prepare   # the day before, after the rehearsal: fresh database, A4 dialogs, screenshots

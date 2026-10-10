@@ -2,7 +2,7 @@
 
 # Preparing and rehearsing
 
-The order of work from the first setup to demo day. What each `./demo` command does is in [Demos A and B → What to prepare](demos.md#what-to-prepare); how to run the show is in [Running a demo](usage.md). Run the commands from the runbook folder.
+The order of work from the first setup to demo day. What each `./demo` command does is in [Demos A and B → What to prepare](demos.md#what-to-prepare); how to run the show is in [Running a demo](usage.md). Run the commands from the runbook folder; `./demo` without a command opens a menu of the same actions by number.
 
 ## 1. Once, in advance
 

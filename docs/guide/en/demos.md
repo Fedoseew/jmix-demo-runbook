@@ -117,7 +117,7 @@ The runbook refers to branches, stands and ports by the names in spec §6–7. T
 
 **Infrastructure: `./demo`**
 
-The script `./demo` in the runbook root (bash, macOS and Linux) brings up the stand, the database and the pre-flight. The projects live in `~/IdeaProjects`: `jmix-crm` stays on `main` all the time (Studio, A1 and A2), the stand lives in a separate worktree `jmix-crm-stand` on the `demo/ai-app` branch, demo B in `crm-from-db`.
+The script `./demo` in the runbook root (bash, macOS and Linux) brings up the stand, the database and the pre-flight. The projects live in `~/IdeaProjects`: `jmix-crm` stays on `main` all the time (Studio, A1 and A2), the stand lives in a separate worktree `jmix-crm-stand` on the `demo/ai-app` branch, demo B in `crm-from-db`. `./demo` without a command opens a menu: the actions are grouped by demo, each next to the command it runs; Ctrl+C stops the command and comes back to the menu.
 
 ```mermaid
 flowchart LR

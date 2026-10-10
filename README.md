@@ -42,6 +42,7 @@ open jmix-demo-runbook/index.html   # Windows: start, Linux: xdg-open
 Стенд, базу и pre-flight поднимает скрипт `./demo` (bash, macOS и Linux; проекты — в `~/IdeaProjects`):
 
 ```bash
+./demo           # меню: действие по номеру, команды ниже помнить не нужно
 ./demo setup     # один раз: worktree jmix-crm-stand на demo/ai-app, jar ~/demo-jars/crm.jar, клон crm-from-db, Playwright
 ./demo up a      # стенд aura-light на :8091 (демо A и тизер B4); ./demo up b — ещё PostgreSQL на :5434
 ./demo prepare   # накануне, после ./demo reset: диалоги A4 и скриншоты-fallback в assets/

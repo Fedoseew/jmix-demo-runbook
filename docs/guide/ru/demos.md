@@ -117,7 +117,7 @@ Runbook ссылается на ветки, стенды и порты по им
 
 **Инфраструктура: `./demo`**
 
-Стенд, базу и pre-flight поднимает скрипт `./demo` в корне runbook (bash, macOS и Linux). Проекты лежат в `~/IdeaProjects`: `jmix-crm` всё время на `main` (Studio, A1 и A2), стенд живёт в отдельном worktree `jmix-crm-stand` на ветке `demo/ai-app`, демо B — в `crm-from-db`.
+Стенд, базу и pre-flight поднимает скрипт `./demo` в корне runbook (bash, macOS и Linux). Проекты лежат в `~/IdeaProjects`: `jmix-crm` всё время на `main` (Studio, A1 и A2), стенд живёт в отдельном worktree `jmix-crm-stand` на ветке `demo/ai-app`, демо B — в `crm-from-db`. `./demo` без команды открывает меню: действия сгруппированы по демо, рядом с каждым — команда, которую оно выполняет; Ctrl+C останавливает команду и возвращает в меню.
 
 ```mermaid
 flowchart LR

@@ -132,6 +132,7 @@ flowchart TD
 **Инфраструктуру** демо поднимает скрипт `./demo` из папки runbook; что где работает и все команды — в [Демо A и B → Что подготовить](demos.md#что-подготовить).
 
 ```bash
+./demo                           # меню: те же действия по номеру
 ./demo setup                     # один раз: worktree jmix-crm-stand, jar стенда, клон crm-from-db
 ./demo up a                      # стенд :8091; ./demo up b — ещё PostgreSQL :5434 для демо B
 ./demo reset && ./demo prepare   # накануне после репетиции: свежая база, диалоги A4, скриншоты

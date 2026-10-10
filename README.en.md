@@ -42,6 +42,7 @@ No server, build or internet needed. The essential keys (all of them: press `?`,
 The `./demo` script (bash, macOS and Linux; projects in `~/IdeaProjects`) brings up the stand, the database and the pre-flight:
 
 ```bash
+./demo           # a menu: pick an action by number, no need to remember the commands below
 ./demo setup     # once: the jmix-crm-stand worktree on demo/ai-app, the jar ~/demo-jars/crm.jar, a clone of crm-from-db, Playwright
 ./demo up a      # the aura-light stand on :8091 (demo A and the B4 teaser); ./demo up b also starts PostgreSQL on :5434
 ./demo prepare   # the day before, after ./demo reset: the A4 dialogs and the fallback screenshots in assets/

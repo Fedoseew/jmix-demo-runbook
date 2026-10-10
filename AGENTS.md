@@ -14,7 +14,7 @@ An offline presenter runbook for two live Jmix demos: A "AI × Jmix" (73 min cor
 | `content.js` | `globalThis.DEMOS`: both demos' blocks (slides, notes, actions) |
 | `core.js` | `globalThis.Runbook`: pure logic without the DOM, tested in Node |
 | `app.js` | DOM: stage, console, dock, keys, copy, two-window sync |
-| `demo` | bash entry point for the demo infrastructure (not a page file): `setup`, `check`, `up`, `prepare`, `reset`, `down`, `status`, `logs`; `./demo help` |
+| `demo` | bash entry point for the demo infrastructure (not a page file): `setup`, `check`, `up`, `prepare`, `reset`, `down`, `status`, `logs`; `./demo help`; without a command in a terminal, a numbered menu of them (`MENU`, every item an existing command: tested) |
 | `test/*.test.mjs` | `node --test`, no dependencies; `test/load.mjs` runs project files in `node:vm` |
 | `tools/` | `shot.mjs` screenshots, `smoke.mjs` two-window smoke test, `capture-fallbacks.mjs` fallback screenshots from the running demo stand, `browser.mjs` shared Playwright launcher, `StandKeyCheck.java` (run by `./demo check`: asks the stand over JMX 9191 whether its keys are set, prints only `set` or `missing`, never the value) |
 | `assets/` | rehearsal fallback screenshots (git-ignored); `assets/README.md` lists every file `content.js` opens and how to capture it |

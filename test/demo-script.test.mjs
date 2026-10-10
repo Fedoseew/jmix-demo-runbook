@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -18,6 +19,20 @@ test('demo help перечисляет все подкоманды', () => {
   assert.equal(r.status, 0, r.stderr);
   const listed = [...r.stdout.matchAll(/^ {2}([a-z]+)\b/gm)].map(m => m[1]);
   assert.deepEqual(listed, COMMANDS);
+});
+
+test('demo без команды и без терминала печатает справку, а не меню', () => {
+  const r = spawnSync('./demo', [], { cwd: root, encoding: 'utf8', input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^Usage: \.\/demo/);
+  assert.doesNotMatch(r.stdout, /Number: /);
+});
+
+test('меню ./demo: каждый пункт — существующая команда', () => {
+  const menu = readFileSync(resolve(root, 'demo'), 'utf8').match(/^MENU="([\s\S]*?)"$/m)[1];
+  const items = menu.split('\n').filter(l => !l.startsWith('#')).map(l => l.split('|')[0]);
+  assert.ok(items.length >= 10, items.join(', '));
+  for (const item of items) assert.ok(COMMANDS.includes(item.split(' ')[0]), item);
 });
 
 test('demo: неизвестная подкоманда — справка в stderr и код 2', () => {

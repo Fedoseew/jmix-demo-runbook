@@ -128,7 +128,7 @@ node --test
 - `content.test.mjs`: content rules (see [content.md](content.md#checking-your-changes)).
 - `html.test.mjs`: markup and CSS (external resources, script order, contrast, font sizes, the key reference both ways: every handled key is listed and every listed key is handled, the reset rehearsal button).
 - `app.test.mjs`: `app.js` without `content.js` or `core.js` reports the reason instead of crashing.
-- `demo-script.test.mjs`: `bash -n demo`, `./demo help` lists every subcommand, an unknown one exits with code 2.
+- `demo-script.test.mjs`: `bash -n demo`, `./demo help` lists every subcommand, without a command and a terminal it prints the help, every menu item is an existing command, an unknown one exits with code 2.
 
 The tools below check behaviour in a real browser.
 
